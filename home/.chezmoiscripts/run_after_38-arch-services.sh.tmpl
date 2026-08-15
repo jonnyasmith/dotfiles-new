@@ -1,0 +1,45 @@
+{{- if eq .family "arch" -}}
+#!/bin/sh
+# Power management and pacman tuning for the one Arch machine.
+#
+# Everything here ships its own unit or config file — nothing is created, only
+# enabled or edited in place, so each step is naturally idempotent.
+#
+# Neither `once_` nor `onchange_`, for the same reason as 36-linux-services:
+# the packages these units come from are installed by 10-packages-arch on the
+# same apply, and a first run that finds them missing has to be able to try
+# again on the next one.
+
+set -u
+
+command -v systemctl >/dev/null 2>&1 || exit 0
+
+# TLP owns radio-device state; systemd-rfkill fights it over the wifi and
+# bluetooth blocks, so it is masked rather than left to lose the race.
+if systemctl list-unit-files tlp.service >/dev/null 2>&1; then
+    sudo systemctl enable --now tlp.service
+    sudo systemctl enable --now NetworkManager-dispatcher.service
+    sudo systemctl mask systemd-rfkill.service systemd-rfkill.socket
+fi
+
+# `auto-cpufreq --install` writes a unit and is not idempotent, so it runs only
+# where there is no unit yet. The package is AUR, so on a machine without yay it
+# is simply absent.
+if command -v auto-cpufreq >/dev/null 2>&1 \
+    && ! systemctl list-unit-files auto-cpufreq.service >/dev/null 2>&1; then
+    sudo auto-cpufreq --install
+fi
+
+sudo systemctl enable --now fstrim.timer
+
+# Once the line reads `Color` the pattern stops matching, so re-running is free.
+sudo sed -i 's/^#Color$/Color/' /etc/pacman.conf
+
+# Prioritise RAM over swap. Guarded so the file is written once rather than
+# appended to. Takes effect at the next boot, or on `sudo sysctl --system`.
+if ! grep -qs '^vm.swappiness=10$' /etc/sysctl.d/99-swappiness.conf; then
+    echo 'vm.swappiness=10' | sudo tee /etc/sysctl.d/99-swappiness.conf >/dev/null
+fi
+
+exit 0
+{{ end -}}
