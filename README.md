@@ -32,6 +32,9 @@ chezmoi cd              # open a shell in the source directory
 
 ```
 .chezmoiroot              -> "home"
+mise.toml                 tooling for working on this repo, not on a machine
+checks/                   the check suite `mise run check` drives
+.github/workflows/        CI
 home/                     the chezmoi source directory
   .chezmoi.toml.tmpl      machine detection, rendered at `chezmoi init`
   .chezmoiignore          targets chezmoi must not manage
@@ -348,6 +351,38 @@ command line. The flag is keyed on the *prompt text*, not the data key:
 chezmoi init --apply --promptBool "Work machine (adds a second git identity)=false"
 ```
 
+## Verification
+
+```sh
+mise run check          # everything, in one render
+mise run check:shell    # or one check at a time
+```
+
+Almost every check reads *rendered* output rather than the templates. A `.tmpl`
+is not shell, TOML or JSON until Tera has run, and the branch that breaks is
+usually the one the machine you are sitting at would never take. So
+`checks/render.sh` renders the whole source state seven times — macOS personal
+and work, Debian, Debian-as-WSL, Fedora, Arch, Windows — and the rest read that.
+
+| check      | what it would catch                                                     |
+| ---------- | ----------------------------------------------------------------------- |
+| `render`   | a template that fails to render on some other OS                        |
+| `shell`    | a rendered script that does not parse, or that shellcheck rejects       |
+| `pwsh`     | the same for PowerShell; skipped, loudly, where pwsh is absent          |
+| `config`   | a rendered config that stopped being valid TOML or JSON, a `.chezmoiignore` rule that drops the wrong file, a script gated onto a machine that cannot run it |
+| `packages` | a package the mise registry could supply, or one declared for two Linux families and not the third |
+| `comments` | a comment paragraph over the budget — prose that outgrew the file       |
+| `dconf`    | a dconf path or key no installed schema defines; skipped off a desktop  |
+
+`mise.toml` at the repo root exists only for this. It manages nothing about the
+machine, and is never linked into `~/.config/mise` — that config is a chezmoi
+target like everything else.
+
+CI runs the suite on every pull request, then does a real `chezmoi init --apply`
+in a Debian 13 and a Fedora 41 container, twice each. Rendering a script proves
+it parses; it says nothing about whether the repositories it adds exist or the
+packages it names are in them.
+
 ## Status
 
 Built so far:
@@ -362,7 +397,7 @@ Built so far:
 - [x] remaining app configs — nvim, tmux, gh, btop, htop, claude, codex, omp
 - [x] OS and desktop settings — macOS defaults, GNOME dconf, COSMIC
 - [x] Debian, WSL, Fedora, Windows
-- [ ] verification and CI
+- [x] verification and CI
 - [ ] per-OS runbooks
 
 Applied end to end on macOS, and in a Debian 13 container — where the repo

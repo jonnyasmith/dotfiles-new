@@ -102,8 +102,8 @@ core = [
 ]
 
 desktop = [
-    "1password",           # apt, not snap: the snap build reaches neither the SSH agent nor system authentication, which is the whole point of it. parity-skip: Arch takes this from the AUR
-    "1password-cli",       # registry-skip: see the macOS entry. Same 1Password repo as the app above, hence its place in `desktop` — which also means WSL gets no `op`, and calls the host's op.exe over interop instead
+    "1password",           # apt, not snap: the snap build reaches neither the SSH agent nor system authentication, which is the whole point of it. registry-skip: the registry's `1password` is the CLI, not the desktop app. parity-skip: Arch takes this from the AUR
+    "1password-cli",       # registry-skip: see the macOS entry. parity-skip: Arch takes this from the AUR. Same 1Password repo as the app above, hence its place in `desktop` — which also means WSL gets no `op`, and calls the host's op.exe over interop instead
     "code",              # registry-skip: the registry's `code` is an unrelated coding CLI. parity-skip: Arch takes visual-studio-code-bin from the AUR
     "google-chrome-stable",# parity-skip: Arch has no official Chrome package, so it comes from the AUR
     "libavcodec-extra",    # parity-skip: Fedora and Arch get these codecs from RPM Fusion and the base repos
@@ -136,7 +136,7 @@ core = [
 desktop = [
     "1password",            # registry-skip: the registry's `1password` is the CLI, not the desktop app. parity-skip: Arch takes this from the AUR
     "1password-cli",        # registry-skip: see the macOS entry. parity-skip: Arch takes this from the AUR
-    "code",                # registry-skip: see the Debian entry
+    "code",                # registry-skip: see the Debian entry. parity-skip: Arch takes visual-studio-code-bin from the AUR
     "google-chrome-stable", # parity-skip: see the Debian entry
     "vlc",
 ]

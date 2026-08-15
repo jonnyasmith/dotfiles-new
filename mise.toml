@@ -1,0 +1,47 @@
+# Tooling for working ON this repo. It manages nothing about the machine —
+# chezmoi does that — and is never linked into ~/.config/mise. Its only job is
+# to pin the versions the checks need and give them names.
+#
+# The tools below are the ones a check shells out to. python3 is deliberately
+# absent: the check scripts are stdlib-only so CI can run them with whatever
+# python the runner already has.
+
+[tools]
+chezmoi = "2.72.0"
+shellcheck = "latest"
+
+[tasks.check]
+description = "Everything verifiable without touching the machine"
+run = "./checks/all.sh"
+
+[tasks."check:render"]
+description = "Render every template, for every machine the repo supports"
+run = "./checks/render.sh \"$(mktemp -d)\""
+
+[tasks."check:shell"]
+description = "Parse and lint every rendered shell and zsh file"
+run = "./checks/shell.sh"
+
+[tasks."check:pwsh"]
+description = "Parse every rendered PowerShell file (skipped without pwsh)"
+run = "./checks/pwsh.sh"
+
+[tasks."check:config"]
+description = "Assert the rendered configs parse and land on the right machines"
+run = "./checks/config.sh"
+
+[tasks."check:packages"]
+description = "Assert the registry rule and Linux parity in .chezmoidata/packages.toml"
+run = "./checks/packages.py ."
+
+[tasks."check:comments"]
+description = "Assert no comment block exceeds the budget"
+run = "./checks/comments.py ."
+
+[tasks."check:dconf"]
+description = "Verify the dconf payloads against installed GSettings schemas"
+run = "./checks/dconf.py ."
+
+[tasks."check:fmt"]
+description = "Assert this config is formatted"
+run = "mise fmt --check"
