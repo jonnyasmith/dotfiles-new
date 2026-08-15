@@ -1,0 +1,48 @@
+{{- if ne .family "windows" -}}
+#!/bin/sh
+# Make zsh the login shell.
+#
+# Everything else here assumes it: .zshenv, .zprofile and .zshrc are the only
+# rc files this repo writes, so a machine still on bash gets none of the PATH,
+# mise activation or prompt.
+#
+# Neither `once_` nor `onchange_`, for the same reason as 31-dev-remotes: this
+# can legitimately fail on the run that installs zsh, or need a password nobody
+# is there to type, and it has to keep trying on later applies. The first line
+# of real work is a comparison, so once it has succeeded it costs nothing.
+
+set -u
+
+want={{ if eq .family "darwin" }}/bin/zsh{{ else }}/usr/bin/zsh{{ end }}
+
+# Read from the account database, not $SHELL: $SHELL is inherited from whatever
+# launched this and says nothing about what the next login will start.
+{{ if eq .family "darwin" -}}
+have="$(dscl . -read "/Users/$(id -un)" UserShell 2>/dev/null | awk '{print $2}')"
+{{- else -}}
+have="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f7)"
+{{- end }}
+
+[ "$have" = "$want" ] && exit 0
+
+[ -x "$want" ] || {
+    echo "  . $want not installed yet, login shell unchanged"
+    exit 0
+}
+
+# chsh refuses a shell that is not listed here, and it is the package's job to
+# add it — editing /etc/shells would need sudo for a line the next zsh upgrade
+# writes anyway.
+if ! grep -qxF "$want" /etc/shells 2>/dev/null; then
+    echo "  ! $want is missing from /etc/shells, login shell unchanged" >&2
+    exit 0
+fi
+
+if chsh -s "$want"; then
+    echo "  + login shell: $want (takes effect at the next login)"
+else
+    echo "  ! chsh failed, login shell unchanged" >&2
+fi
+
+exit 0
+{{ end -}}

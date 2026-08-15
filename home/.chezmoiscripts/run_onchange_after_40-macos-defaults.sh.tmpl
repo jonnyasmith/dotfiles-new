@@ -1,0 +1,34 @@
+{{- if eq .family "darwin" -}}
+#!/bin/sh
+# macOS system preferences that have no file to manage.
+#
+# `defaults` writes into a binary plist that cfprefsd owns and rewrites, so
+# this cannot be a chezmoi-managed file — it has to be a script. Every write is
+# idempotent, and `run_onchange_` keys on this script's own text, so adding a
+# key here is what makes it re-run.
+
+set -eu
+
+# -g is NSGlobalDomain. Show every extension, so a .txt cannot pretend to be
+# anything else.
+defaults write -g AppleShowAllExtensions -bool true
+
+defaults write com.apple.dock autohide -bool true
+
+# SCcf scopes a new Finder search to the current folder rather than the whole
+# Mac, which is almost never what was meant.
+defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
+defaults write com.apple.finder ShowStatusBar -bool true
+defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
+defaults write com.apple.finder WarnOnEmptyTrash -bool false
+
+# Tap to click. The domain is the driver's, not the trackpad pane's, and it is
+# the one both a built-in and a Magic Trackpad read.
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+
+# `defaults write` does not notify a running app; each re-reads its domain at
+# launch. Restarting these two is what makes the change visible now.
+killall Finder Dock 2>/dev/null || true
+
+echo "  . macOS defaults applied"
+{{ end -}}

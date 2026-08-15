@@ -1,0 +1,36 @@
+{{- if eq .family "darwin" -}}
+#!/bin/sh
+# Global .NET tools.
+#
+# `dotnet tool install --global` installs into DOTNET_CLI_HOME (~/.dotnet/tools),
+# which is independent of the DOTNET_ROOT mise sets, so mise neither tracks
+# these nor installs them. Numbered after 20-mise because it needs the dotnet
+# that script installs.
+
+set -u
+
+# Everything runs under `mise exec`, not off PATH. mise puts dotnet on PATH by
+# activating in an interactive shell rather than by writing a shim, and this
+# script has neither — `command -v dotnet` finds nothing here even on a machine
+# where dotnet works fine.
+PATH="$HOME/.local/bin:$PATH"
+export PATH
+
+command -v mise >/dev/null 2>&1 || {
+    echo "  . mise not installed, skipped"
+    exit 0
+}
+
+mise exec -- dotnet --version >/dev/null 2>&1 || {
+    echo "  . dotnet not installed, skipped"
+    exit 0
+}
+
+if mise exec -- dotnet tool list --global 2>/dev/null | grep -q '^ilspycmd'; then
+    echo "  . ilspycmd"
+elif mise exec -- dotnet tool install --global ilspycmd >/dev/null 2>&1; then
+    echo "  + ilspycmd"
+else
+    echo "  ! ilspycmd install failed" >&2
+fi
+{{ end -}}

@@ -1,0 +1,59 @@
+# Loaded by .chezmoiscripts/run_onchange_after_40-desktop-dconf, and only where
+# gnome-shell is installed. Keys interpreted by GNOME Shell, mutter or
+# gnome-settings-daemon; cross-desktop GTK keys belong in gtk.dconf, and the
+# COSMIC equivalents are ordinary managed files under dot_config/cosmic/.
+
+[org/gnome/desktop/peripherals/touchpad]
+tap-to-click=true
+
+[org/gnome/desktop/wm/preferences]
+button-layout='appmenu:minimize,maximize,close'
+
+[org/gnome/desktop/interface]
+clock-show-seconds=true
+show-battery-percentage=true
+
+[org/gnome/desktop/input-sources]
+xkb-options=['caps:swapescape']
+
+[org/gnome/desktop/privacy]
+recent-files-max-age=30
+
+[org/gnome/settings-daemon/plugins/power]
+sleep-inactive-ac-type='nothing'
+sleep-inactive-battery-type='nothing'
+
+[org/gnome/settings-daemon/plugins/color]
+night-light-enabled=true
+
+# optional — nautilus is not a GNOME Shell dependency
+[org/gnome/nautilus/preferences]
+default-folder-viewer='list-view'
+
+[org/gnome/desktop/wm/keybindings]
+move-to-workspace-left=['<Shift><Super>Left']
+move-to-workspace-right=['<Shift><Super>Right']
+
+# Super+N stays on the GNOME default, switch-to-application; workspaces move to
+# Shift+Super+N, which no installed schema claims. switch-to-application is
+# written explicitly because `dconf load` only merges and cannot unset a key.
+switch-to-workspace-1=['<Shift><Super>1']
+switch-to-workspace-2=['<Shift><Super>2']
+switch-to-workspace-3=['<Shift><Super>3']
+switch-to-workspace-4=['<Shift><Super>4']
+switch-to-workspace-5=['<Shift><Super>5']
+switch-to-workspace-6=['<Shift><Super>6']
+switch-to-workspace-7=['<Shift><Super>7']
+switch-to-workspace-8=['<Shift><Super>8']
+switch-to-workspace-9=['<Shift><Super>9']
+
+[org/gnome/shell/keybindings]
+switch-to-application-1=['<Super>1']
+switch-to-application-2=['<Super>2']
+switch-to-application-3=['<Super>3']
+switch-to-application-4=['<Super>4']
+switch-to-application-5=['<Super>5']
+switch-to-application-6=['<Super>6']
+switch-to-application-7=['<Super>7']
+switch-to-application-8=['<Super>8']
+switch-to-application-9=['<Super>9']

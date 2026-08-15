@@ -38,6 +38,7 @@ home/                     the chezmoi source directory
   .chezmoidata/           declarative lists the scripts render in
   .chezmoiexternal.toml   third-party trees chezmoi clones and refreshes
   .chezmoiscripts/        scripts that run but are never written to $HOME
+  .chezmoitemplates/      payloads scripts inline, also never written to $HOME
   dot_zshenv              -> ~/.zshenv
   dot_config/…            -> ~/.config/…
 ```
@@ -214,6 +215,56 @@ pin — the point is that every machine gets the same plugin revisions — so
 `:Lazy sync` is followed by `chezmoi re-add`. `~/.config/gh/hosts.yml` holds
 the OAuth token and stays unmanaged.
 
+## OS and desktop settings
+
+Three of these have no file to manage. macOS keeps preferences in a binary
+plist that `cfprefsd` owns and rewrites; GTK and GNOME keep theirs in a dconf
+database behind a daemon; the login shell lives in the account database. So
+these are scripts, not managed files.
+
+| Script | Does |
+| --- | --- |
+| `35-login-shell` | `chsh` to zsh — `/bin/zsh` on macOS, `/usr/bin/zsh` elsewhere |
+| `40-macos-defaults` | Finder, Dock, trackpad and extension-visibility `defaults` |
+| `40-desktop-dconf` | `dconf load` of the GTK payload, then the GNOME one |
+| `21-dotnet-tools` | `ilspycmd`, a global .NET tool no toolchain manager owns |
+
+The two dconf payloads live in `home/.chezmoitemplates/desktop/`, and
+`40-desktop-dconf` inlines them into itself with `includeTemplate`. That puts
+them inside the text `run_onchange_` hashes, so editing a payload is what
+re-runs the script — the same trick `20-mise` uses for the mise config.
+`.chezmoitemplates` is never written to `$HOME`, so the payloads stay out of
+the target entirely.
+
+`dconf load` reports success with nothing to write to when no session bus is
+reachable, which is the normal case over SSH. The script names the bus itself
+when it can find the socket, and checks the exit status rather than assuming
+it, so a run that changed nothing says so.
+
+`35-login-shell` carries neither `once_` nor `onchange_`, for the same reason
+as `31-dev-remotes`: it can legitimately fail on the run that installs zsh, or
+need a password nobody is there to type, so it has to keep trying. Once it has
+succeeded the first comparison exits.
+
+### COSMIC
+
+COSMIC is the exception — its settings are one file per key under
+`~/.config/cosmic`, so chezmoi manages them directly and no script is involved.
+`cosmic-config` rewrites them from the GUI, which makes them the same
+`chezmoi re-add` story as btop and gh.
+
+The gate is a live probe rather than a machine fact:
+
+```
+{{ if not (lookPath "cosmic-comp") }}
+.config/cosmic
+{{ end }}
+```
+
+`.chezmoiignore` is re-rendered on every apply, so installing COSMIC later is
+enough to bring the directory under management — unlike `.family`, no
+`chezmoi init` is needed.
+
 ## Work identity
 
 `chezmoi init` asks whether this is a work machine and, if so, for the work
@@ -241,7 +292,7 @@ Built so far:
 - [x] secrets — 1Password SSH agent, ssh config, work identity
 - [x] externals — oh-my-zsh, tpm, `~/dev` checkouts
 - [x] remaining app configs — nvim, tmux, gh, btop, htop, claude, codex, omp
-- [ ] OS and desktop settings — macOS defaults, GNOME dconf, COSMIC
+- [x] OS and desktop settings — macOS defaults, GNOME dconf, COSMIC
 - [ ] Debian, WSL, Fedora, Windows
 - [ ] verification and CI
 - [ ] per-OS runbooks

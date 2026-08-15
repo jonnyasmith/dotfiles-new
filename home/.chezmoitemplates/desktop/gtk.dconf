@@ -1,0 +1,18 @@
+# Loaded by .chezmoiscripts/run_onchange_after_40-desktop-dconf, which includes
+# this file verbatim so chezmoi's hash tracks it. Keys that GTK apps read for
+# themselves, so this file applies wherever dconf exists; anything a *shell*
+# interprets belongs in gnome.dconf.
+
+[org/gnome/desktop/interface]
+color-scheme='prefer-dark'
+enable-animations=false
+font-antialiasing='rgba'
+font-hinting='full'
+
+[org/gtk/settings/file-chooser]
+show-hidden=true
+sort-directories-first=true
+
+[org/gtk/gtk4/settings/file-chooser]
+show-hidden=true
+sort-directories-first=true

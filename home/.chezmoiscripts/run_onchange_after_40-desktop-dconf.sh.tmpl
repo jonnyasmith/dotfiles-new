@@ -1,0 +1,64 @@
+{{- if and (ne .family "darwin") (ne .family "windows") (not .isWSL) -}}
+#!/bin/sh
+# GTK and GNOME settings, loaded into dconf.
+#
+# dconf is a binary database behind a daemon, so like macOS `defaults` it has
+# no file chezmoi could manage. The two payloads are inlined below rather than
+# read from disk at run time: that puts them inside the text `run_onchange_`
+# hashes, so editing .chezmoitemplates/desktop/*.dconf is what re-runs this.
+#
+# COSMIC is not here. Its settings are one file per key under ~/.config/cosmic,
+# which chezmoi manages directly.
+
+set -u
+
+command -v dconf >/dev/null 2>&1 || exit 0
+
+# Over SSH or from a tty the session bus is usually running but not named in
+# the environment, and without it GIO silently falls back to a memory backend —
+# `dconf load` then reports success and changes nothing.
+if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && [ -S "/run/user/$(id -u)/bus" ]; then
+    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
+    export DBUS_SESSION_BUS_ADDRESS
+fi
+
+# Read by GTK apps themselves, so these apply under any desktop.
+#
+# The exit status is checked rather than assumed: with no bus reachable dconf
+# writes nothing and says so on stderr, and an unchecked `dconf load` would
+# have this script report success on a run that changed nothing.
+if dconf load / <<'CHEZMOI_GTK_DCONF'
+{{ includeTemplate "desktop/gtk.dconf" . | trim }}
+CHEZMOI_GTK_DCONF
+then
+    echo "  . gtk settings applied"
+else
+    echo "  ! gtk settings not applied — no dconf backend reachable" >&2
+    exit 0
+fi
+
+if ! command -v gnome-shell >/dev/null 2>&1; then
+    echo "  . gnome not installed, skipped"
+    exit 0
+fi
+
+if ! dconf load / <<'CHEZMOI_GNOME_DCONF'
+{{ includeTemplate "desktop/gnome.dconf" . | trim }}
+CHEZMOI_GNOME_DCONF
+then
+    echo "  ! gnome settings not applied" >&2
+    exit 0
+fi
+
+# Installed here rather than declared in packages.toml: that list has an `os`
+# dimension but no desktop one, and a GNOME-only GUI has no business on a
+# COSMIC box.
+if ! command -v gnome-tweaks >/dev/null 2>&1; then
+    if command -v dnf >/dev/null 2>&1; then sudo dnf install -y gnome-tweaks
+    elif command -v apt-get >/dev/null 2>&1; then sudo apt-get install -y gnome-tweaks
+    elif command -v pacman >/dev/null 2>&1; then sudo pacman -S --needed --noconfirm gnome-tweaks
+    fi
+fi
+
+echo "  . gnome settings applied"
+{{ end -}}

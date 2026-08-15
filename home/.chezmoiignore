@@ -35,6 +35,14 @@
 .config/htop
 {{ end -}}
 
+{{ if not (lookPath "cosmic-comp") -}}
+# COSMIC settings, one file per key. Unlike every other gate here this is a
+# live probe rather than a machine fact: .chezmoiignore is re-rendered on every
+# apply, so installing COSMIC later is enough to bring ~/.config/cosmic under
+# management, with no `chezmoi init` needed.
+.config/cosmic
+{{ end -}}
+
 {{ if .isWSL -}}
 # 1Password runs on the Windows host under WSL, and its agent config is read
 # there. A copy inside the guest is read by nothing.
