@@ -1,0 +1,27 @@
+{{- if .isWSL -}}
+#!/bin/sh
+# The two WSL-only things that are not a file or a package.
+#
+# Rendered only where `chezmoi init` saw a Microsoft kernel. Everything else
+# WSL needs is already conditional elsewhere: the desktop repos and apps are
+# skipped in 05-repos and 10-packages, BROWSER and SSH_AUTH_SOCK branch in the
+# mise config, git reaches the Windows agent through ssh.exe in config.os, and
+# .chezmoiignore drops ~/.config/1Password because the host owns it.
+
+set -u
+
+# SSH_AUTH_SOCK names ~/.1password/agent.sock on every Linux. Under WSL nothing
+# listens there unless the optional npiperelay/socat relay is set up by hand —
+# git does not need it, since it calls ssh.exe — so the directory is created
+# and left empty rather than the relay being installed.
+mkdir -p "$HOME/.1password"
+
+# Reported, not written. /etc/wsl.conf is outside $HOME and may already carry
+# [automount] or [user] stanzas an append would have to merge with, and it is
+# read by the Windows side at boot, not by anything here.
+if ! grep -q '^command="service docker start"' /etc/wsl.conf 2>/dev/null; then
+    echo "  ! /etc/wsl.conf has no docker boot stanza — add [boot] command=\"service docker start\" to start the daemon at wsl launch" >&2
+fi
+
+exit 0
+{{ end -}}

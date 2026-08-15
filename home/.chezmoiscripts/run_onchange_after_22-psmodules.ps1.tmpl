@@ -1,0 +1,39 @@
+{{- if eq .family "windows" -}}
+# PowerShell Gallery modules the profile imports if present.
+#
+# Not in packages.toml: these come from the Gallery, not winget, and are
+# per-user PowerShell modules rather than machine packages. `run_onchange_`
+# keys on this script's own text, so adding a module below is what re-runs it.
+#
+# The profile imports each only if it is there, so a machine that skipped this
+# still gets a working shell — just without fzf key bindings, file-type icons
+# or `z`.
+
+$ErrorActionPreference = 'Stop'
+
+$modules = @(
+    # Pinned: 2.5.16 is the last release before PSFzf changed its
+    # PSReadLine chord API, which the profile's Set-PsFzfOption call uses.
+    @{ Name = 'PSFzf'; RequiredVersion = '2.5.16' }
+    @{ Name = 'Terminal-Icons' }
+    # -AllowClobber below is for this one: `z` defines a function that
+    # collides with the built-in alias of the same name.
+    @{ Name = 'z' }
+)
+
+foreach ($m in $modules) {
+    if (Get-Module -ListAvailable -Name $m.Name) {
+        Write-Host "  . $($m.Name)"
+        continue
+    }
+
+    # CurrentUser, so none of this needs an elevated prompt — Program Files is
+    # the default scope and would ask for one.
+    try {
+        Install-Module @m -Scope CurrentUser -Repository PSGallery -AllowClobber -Force
+        Write-Host "  + $($m.Name)"
+    } catch {
+        Write-Host "  ! could not install $($m.Name): $($_.Exception.Message)"
+    }
+}
+{{ end -}}

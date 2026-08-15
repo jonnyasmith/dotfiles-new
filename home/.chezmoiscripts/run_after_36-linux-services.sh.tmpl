@@ -1,0 +1,42 @@
+{{- if and (ne .family "darwin") (ne .family "windows") -}}
+#!/bin/sh
+# Docker group membership and the docker service.
+#
+# The engine itself is a package. What is left is the part no package manager
+# does: adding this account to the docker group, and starting the daemon.
+#
+# Neither `once_` nor `onchange_`, like 35-login-shell: the group add needs
+# sudo and can legitimately fail on an unattended run, so it has to keep
+# trying. Both checks are cheap once they have succeeded.
+
+set -u
+
+command -v docker >/dev/null 2>&1 || exit 0
+
+# `id -un`, not $USER: this runs under `set -u` and not every context exports
+# USER.
+me="$(id -un)"
+if id -nG "$me" | tr ' ' '\n' | grep -qx docker; then
+    : # already a member
+elif sudo usermod -aG docker "$me"; then
+    echo "  + docker group — log out and back in, or docker still needs sudo"
+else
+    echo "  ! could not add $me to the docker group" >&2
+fi
+
+# Probe for a live systemd rather than for systemctl, which exists either way:
+# WSL has no systemd unless /etc/wsl.conf turns it on.
+[ -d /run/systemd/system ] || exit 0
+
+if systemctl is-enabled --quiet docker.service 2>/dev/null; then
+    exit 0
+fi
+
+if sudo systemctl enable --now docker.service; then
+    echo "  + docker.service"
+else
+    echo "  ! could not enable docker.service" >&2
+fi
+
+exit 0
+{{ end -}}

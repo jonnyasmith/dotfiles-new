@@ -41,6 +41,8 @@ home/                     the chezmoi source directory
   .chezmoitemplates/      payloads scripts inline, also never written to $HOME
   dot_zshenv              -> ~/.zshenv
   dot_config/…            -> ~/.config/…
+  Documents/…             -> ~/Documents/… (Windows)
+  AppData/…               -> ~/AppData/… (Windows)
 ```
 
 ## Packages
@@ -265,6 +267,65 @@ The gate is a live probe rather than a machine fact:
 enough to bring the directory under management — unlike `.family`, no
 `chezmoi init` is needed.
 
+### Linux services and WSL
+
+`36-linux-services` does the two things installing the docker package does not:
+adds this account to the `docker` group, and enables `docker.service`. It
+probes for `/run/systemd/system` rather than for `systemctl`, because WSL has
+the binary either way and systemd only if `/etc/wsl.conf` turns it on.
+
+`37-wsl` renders only where `chezmoi init` saw a Microsoft kernel. It creates
+`~/.1password` — the directory `SSH_AUTH_SOCK` names, left empty unless the
+optional npiperelay/socat relay is set up by hand — and reports when
+`/etc/wsl.conf` has no docker boot stanza. It reports rather than writes: that
+file is outside `$HOME`, may already carry `[automount]` or `[user]` stanzas,
+and is read by the Windows side at boot.
+
+Everything else WSL needs is conditional elsewhere: the desktop repos and apps
+are skipped in `05-repos` and `10-packages`, `BROWSER` and `SSH_AUTH_SOCK`
+branch in the mise config, git reaches the Windows 1Password agent through
+`ssh.exe` in `config.os`, and `.chezmoiignore` drops `~/.config/1Password`
+because the host owns it.
+
+## Windows
+
+Two targets sit outside `~/.config`, because Windows put them there: the
+PowerShell profile has a fixed name under `~/Documents/PowerShell`, and Windows
+Terminal is a Store app whose settings live under its package identity.
+
+```
+home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1
+home/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json
+```
+
+The profile is pwsh 7+ only. Windows PowerShell 5.1 reads
+`~\Documents\WindowsPowerShell\` and is deliberately unmanaged.
+
+chezmoi writes to `%USERPROFILE%\Documents`. If OneDrive has taken over Known
+Folders, `$PROFILE` points inside OneDrive instead and the managed file is read
+by nothing — check `$PROFILE` on a new machine before wondering why the shell
+looks bare.
+
+Windows Terminal rewrites its own `settings.json` on every GUI change and
+whenever it discovers a profile fragment, so it belongs with btop and gh above:
+`chezmoi re-add` after changing something in the UI.
+
+The profile sets `XDG_CONFIG_HOME` to `~\.config`. Windows has no XDG default,
+so tools each invent a location — nvim would read `~\AppData\Local\nvim`, gh
+`~\AppData\Roaming\GitHub CLI` — and neither is a path this repo writes. Both
+check `XDG_CONFIG_HOME` first on every platform, so one line makes the
+`~\.config` tree chezmoi applies the one that gets read.
+
+What Windows does *not* get: kitty (no Windows build), tmux, btop and htop
+(POSIX process viewers), karabiner (macOS), and the zsh files. On a dual-boot or
+WSL machine the guest has its own `$HOME` and its own apply, so a copy of
+`.zshrc` on the host would be read by nothing.
+
+`22-psmodules` installs the three PowerShell Gallery modules the profile imports
+if present — PSFzf, Terminal-Icons and `z`. They are not in `packages.toml`
+because they come from the Gallery rather than winget. The profile imports each
+conditionally, so a machine that skipped this still gets a working shell.
+
 ## Work identity
 
 `chezmoi init` asks whether this is a work machine and, if so, for the work
@@ -280,6 +341,13 @@ that renders empty, and git ignores an include that is not there. To change an
 answer later, edit `~/.config/chezmoi/chezmoi.toml` — the prompts only fire
 when the key is absent.
 
+To init with no terminal — CI, or a container — answer the prompt on the
+command line. The flag is keyed on the *prompt text*, not the data key:
+
+```sh
+chezmoi init --apply --promptBool "Work machine (adds a second git identity)=false"
+```
+
 ## Status
 
 Built so far:
@@ -293,12 +361,16 @@ Built so far:
 - [x] externals — oh-my-zsh, tpm, `~/dev` checkouts
 - [x] remaining app configs — nvim, tmux, gh, btop, htop, claude, codex, omp
 - [x] OS and desktop settings — macOS defaults, GNOME dconf, COSMIC
-- [ ] Debian, WSL, Fedora, Windows
+- [x] Debian, WSL, Fedora, Windows
 - [ ] verification and CI
 - [ ] per-OS runbooks
 
-Applied end to end on macOS, and in containers on Debian 13 and Fedora 41 —
-where the repo scripts were run for real, twice, and every package name checked
-against the repositories they add. The WSL branch is verified by forcing
-`isWSL`, since no container reports a Microsoft kernel. The Arch and Windows
-branches render correctly but have not been run.
+Applied end to end on macOS, and in a Debian 13 container — where the repo
+scripts were run for real, twice, and every package name checked against the
+repositories they add. The WSL branch is verified the same way, by forcing
+`isWSL`, since no container reports a Microsoft kernel. Fedora 41 got as far as
+the mise step, adding its repos and packages, before GitHub rate-limited the
+container's anonymous API calls; the same failure then reproduced on a Debian
+container that had passed an hour earlier, so it is the limit and not the
+distro. The Arch and Windows branches render and parse correctly but have not
+been run.

@@ -29,10 +29,30 @@
 
 {{ if eq .family "windows" -}}
 # tmux does not run on Windows, and btop and htop are POSIX process viewers.
-# The rest of the app configs here are cross-platform and stay.
+# kitty has no Windows build at all. The rest of the app configs here are
+# cross-platform and stay — nvim, gh, git, starship, mise and the AI CLIs all
+# read the same ~/.config tree once the PowerShell profile names
+# XDG_CONFIG_HOME.
 .config/tmux
 .config/btop
 .config/htop
+.config/kitty
+
+# zsh is the login shell everywhere except here. On a dual-boot or WSL machine
+# the guest has its own $HOME and gets its own apply, so a copy on the host
+# would be read by nothing.
+.zshrc
+.zshenv
+.zprofile
+.config/zsh
+{{ end -}}
+
+{{ if ne .family "windows" -}}
+# Windows-only paths, and the two things here that are not under ~/.config.
+# Windows Terminal is a Store app, so its settings live under the package
+# identity; pwsh's profile has a fixed name and directory.
+AppData
+Documents
 {{ end -}}
 
 {{ if not (lookPath "cosmic-comp") -}}
