@@ -1,0 +1,167 @@
+# mise's global config — developer toolchains and nothing else.
+#
+# chezmoi renders this per machine, so the OS branching that used to need three
+# separate mise files (config.macos.toml and friends, stitched together by
+# auto_env) is now a template conditional and one output file.
+#
+# mise.lock sits beside this file and is deliberately unmanaged. It is written
+# on every `mise install` and `mise upgrade`, and it resolves the selectors
+# below to exact versions per machine. Two machines upgraded on different days
+# are expected to differ by a patch; that is not drift.
+
+[settings]
+# Off by default in mise. Without it the *second* entry in `node` and `python`
+# below is unreachable, because nothing can select it. Scoped to those two so
+# mise and uv agree on the interpreter uv writes into a project's
+# .python-version.
+idiomatic_version_file_enable_tools = ["node", "python"]
+
+# Supply-chain quarantine on fuzzy resolution: a version has to have been
+# public for a week before mise will resolve `latest` onto it. Note that
+# `mise lock --bump` can therefore move a version *backwards* when the newest
+# release is still inside the window.
+minimum_release_age = "7d"
+
+# Without this, a PATH edit made *after* `mise activate` wins. .zshrc prepends
+# a couple of tool bin dirs below the activate line, which pushed mise's own
+# install dirs behind /usr/bin and left non-interactive shells resolving
+# python3 to Xcode's. .zshrc calls `mise-shims-last` to put the shims back
+# where they belong for interactive use.
+activate_aggressive = true
+
+[settings.python]
+# Activate a project's .venv on cd. uv creates the venv; mise just enters it.
+uv_venv_auto = true
+
+[settings.node]
+# Install the corepack shims (yarn, yarnpkg) with every node version.
+corepack = true
+
+# ------------------------------------------------------------------- tools --
+#
+# These selectors are the *range*, and they are the whole of the shared desired
+# state. This list is not templated by platform: a toolchain should be the same
+# everywhere. The two `os = [...]` filters below are mise's own, and they are
+# about backend availability rather than about which machine this is.
+
+[tools]
+# The two LTS majors — even majors are LTS. SDKs install side-by-side into one
+# shared DOTNET_ROOT; the first entry is the default when no global.json
+# applies. 8 goes when its support does, and the repos still pinned to it are
+# the ones that move.
+dotnet = ["10", "8"]
+
+# ~/.bun stays as BUN_INSTALL, bun's *global package* dir, so `bun install -g`
+# bins keep working. mise owns only the binary.
+bun = "1"
+
+# Spelled as numbers, not `lts`: that alias tracks the *current* LTS only and
+# there is no `lts-1`, so the second slot is hand-bumped regardless and two
+# literals read better than one of each.
+node = ["24", "22"]
+
+# Majors, not `latest`. mise does not read package.json's `packageManager`, so
+# unlike node there is no per-repo escape hatch — a project that needs the
+# older major needs it declared here or in its own mise.local.toml.
+pnpm = ["11", "10"]
+
+# CPython has no LTS track, so this is the two newest minors. A repo capped
+# below 3.13 declares it — `.python-version` is enough, mise reads it — and uv
+# covers the rest: it honours `requires-python`, which mise never sees.
+# Interpreters only; uv owns per-project venvs and `uv tool` installs.
+python = ["3.14", "3.13"]
+
+azure-cli = "latest"
+bat = "latest"
+# btop's aqua backend publishes Linux binaries only, and that failure takes the
+# whole tools phase with it. macOS gets btop from Homebrew instead.
+btop = { version = "latest", os = ["linux"] }
+caddy = "latest"
+claude = "latest"
+# Zero shell invocations, deliberately kept: editors run it on save in every
+# project carrying a .clang-format.
+clang-format = "latest"
+cmake = "latest"
+codex = "latest"
+# neofetch's replacement — upstream archived neofetch in 2024.
+fastfetch = "latest"
+fzf = "latest"
+gh = "latest"
+# `go install` targets GOBIN, which mise points at this version's own bin dir —
+# so those binaries are on PATH, and are gone after a go upgrade.
+go = "latest"
+herdr = "latest"
+jq = "latest"
+just = "latest"
+lazygit = "latest"
+# The `ls` alias in ~/.config/zsh/aliases.zsh, which falls back to the system
+# `ls` when this is missing.
+lsd = "latest"
+neovim = "latest"
+ninja = "latest"
+# Registry name is the repo (`oh-my-pi`); the binary is `omp`.
+oh-my-pi = "latest"
+ripgrep = "latest"
+shellcheck = "latest"
+starship = "latest"
+terraform = "latest"
+tmux = "latest"
+# nvim's :checkhealth python3 provider. Linux takes it from its distro package
+# list; brew has no formula and the registry no entry, so macOS goes through
+# pipx. Scoped, or every Linux box would install it twice.
+"pipx:pynvim" = { version = "latest", os = ["macos"] }
+# usage-spec completion scripts shell out to this at completion time; without
+# it, tab-completing `mise ` prints an error.
+usage = "latest"
+uv = "latest"
+zoxide = "latest"
+zig = "latest"
+
+# The npm: backend keeps these outside any single node install, so upgrading
+# node does not orphan them.
+"npm:azure-functions-core-tools" = "latest"
+"npm:ccstatusline" = "latest"
+
+# --------------------------------------------------------------------- env --
+
+[env]
+# The one mise-owned updater whose switch is an env var rather than a config
+# key. Every other tool's self-updater is turned off in its own config.
+DISABLE_UPDATES = "1"
+{{- if eq .family "darwin" }}
+
+# A Group Container path on macOS; the space is literal, not shell-escaped.
+SSH_AUTH_SOCK = "{{ .chezmoi.homeDir }}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+
+# pnpm's own global bin dir (`pnpm add -g` shims), not the pnpm binary.
+PNPM_HOME = "{{ .chezmoi.homeDir }}/Library/pnpm"
+{{- else if ne .family "windows" }}
+
+# Nothing listens here under WSL: git reaches the Windows agent through ssh.exe
+# instead, and this socket only appears if you take the optional
+# npiperelay/socat route. Exported unconditionally either way — a stale path
+# and an unset var fail identically.
+SSH_AUTH_SOCK = "{{ .chezmoi.homeDir }}/.1password/agent.sock"
+
+PNPM_HOME = "{{ .chezmoi.homeDir }}/.local/share/pnpm"
+{{- end }}
+{{- if .isWSL }}
+
+# No browser is installed inside the guest, so xdg-open would find no http
+# scheme handler and fall through to a list of text browsers that are also
+# absent. rundll32 hands the URL to the Windows default browser; xdg-open
+# substitutes the %s itself.
+BROWSER = "/mnt/c/Windows/System32/rundll32.exe url.dll,FileProtocolHandler %s"
+{{- end }}
+
+# `dotnet tool install --global` targets DOTNET_CLI_HOME (~/.dotnet), which is
+# independent of the DOTNET_ROOT mise sets. mise does not add it, so it goes on
+# PATH here.
+_.path = [
+    "~/.dotnet/tools",
+{{- if eq .family "darwin" }}
+    "{{ .chezmoi.homeDir }}/Library/pnpm/bin",
+{{- else if ne .family "windows" }}
+    "{{ .chezmoi.homeDir }}/.local/share/pnpm/bin",
+{{- end }}
+]

@@ -66,6 +66,27 @@ in a comment.
 Under WSL the `desktop` lists and their repositories are skipped — each entry
 duplicates an app on the Windows host.
 
+## Toolchains
+
+`~/.config/mise/config.toml` is an ordinary chezmoi-managed file. It declares
+`[tools]`, `[settings]` and `[env]`, and nothing else — mise no longer
+orchestrates anything, so the `[bootstrap.*]`, `[dotfiles]` and `[tasks.*]`
+tables are gone. Three per-OS mise files collapse into one template.
+
+The tool list is not branched by platform: a toolchain should be the same
+everywhere. The two `os = [...]` filters that remain are mise's own, and they
+are about which backends publish binaries, not about which machine this is.
+
+`run_onchange_after_20-mise` installs mise, then runs `mise install`. It is an
+`after` script because it reads the config file the same `chezmoi apply`
+writes, and it carries a hash of that config in a comment — chezmoi keys
+`run_onchange_` on the script, which would otherwise never change when a
+toolchain is added.
+
+`~/.config/mise/mise.lock` is deliberately unmanaged. It resolves the selectors
+to exact versions per machine, and every `mise install` rewrites it. Two
+machines upgraded on different days differ by a patch; that is not drift.
+
 ## Machine facts
 
 `.chezmoi.toml.tmpl` resolves the machine once at `chezmoi init` and writes the
@@ -98,7 +119,7 @@ Built so far:
 - [x] machine detection
 - [x] shell and terminal core — zsh, starship, git, kitty
 - [x] packages
-- [ ] mise toolchains
+- [x] mise toolchains
 - [ ] secrets via 1Password
 - [ ] externals — oh-my-zsh, tpm, `~/dev` checkouts
 - [ ] remaining app configs — nvim, tmux, gh, btop, htop, claude, codex, omp

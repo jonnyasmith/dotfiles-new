@@ -190,6 +190,7 @@ winget = [
     "DEVCOM.JetBrainsMonoNerdFont", # not a Fira Mono Nerd Font as on macOS: winget has no manifest for one under any publisher
     "Git.Git",
     "Google.Chrome",
+    "jdx.mise",                     # registry-skip: mise cannot install itself. The POSIX families use the mise.run script; Windows has no equivalent, so winget carries it
     "Microsoft.PowerShell",
     "Microsoft.PowerToys",
     "Microsoft.VisualStudioCode",

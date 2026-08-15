@@ -1,0 +1,31 @@
+{{- if eq .family "windows" -}}
+# Install everything ~/.config/mise/config.toml declares.
+#
+# mise itself comes from winget with the rest of the Windows packages, so
+# unlike the POSIX side there is nothing to bootstrap here. `after`, not
+# `before`: this reads the config file that the same `chezmoi apply` writes.
+#
+# mise config: {{ include "dot_config/mise/config.toml.tmpl" | sha256sum }}
+
+$ErrorActionPreference = 'Stop'
+
+# winget's shim directory is added to PATH for *new* processes, so the run that
+# installed mise a moment ago cannot see it yet.
+$candidates = @(
+    (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\mise.exe'),
+    (Join-Path $env:USERPROFILE '.local\bin\mise.exe')
+)
+
+$mise = (Get-Command mise -CommandType Application -ErrorAction SilentlyContinue |
+    Select-Object -First 1).Source
+if (-not $mise) {
+    $mise = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+}
+
+if (-not $mise) {
+    Write-Error 'mise is not installed. Run the winget package script first, then open a new shell.'
+    exit 1
+}
+
+& $mise install --yes
+{{ end -}}

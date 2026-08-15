@@ -1,0 +1,36 @@
+{{- if ne .family "windows" -}}
+#!/bin/sh
+# Install mise, then install everything ~/.config/mise/config.toml declares.
+#
+# `after`, not `before`: it reads the config file that this same `chezmoi apply`
+# writes. The hash below is what makes this re-run — chezmoi keys run_onchange_
+# on the rendered script, which would never change on its own, so the config's
+# own contents are folded in.
+#
+# mise config: {{ include "dot_config/mise/config.toml.tmpl" | sha256sum }}
+
+set -eu
+
+# mise cannot install itself from its own config, so this is the one
+# chicken-and-egg the package scripts do not solve. Deliberately mise.run
+# rather than brew or apt: it is the only channel that is the same on all four
+# Linux families and macOS, and it is the channel `mise self-update` expects.
+if ! command -v mise >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/mise" ]; then
+    echo "  + mise"
+    curl -fsSL https://mise.run | sh
+fi
+
+# The installer drops the binary here, and this script's own shell predates the
+# .zshenv that would normally put it on PATH.
+PATH="$HOME/.local/bin:$PATH"
+export PATH
+
+command -v mise >/dev/null 2>&1 || {
+    echo "  ! mise is not on PATH after install" >&2
+    exit 1
+}
+
+# Idempotent: already-resolved tools are a no-op. This is the slow part of a
+# first bootstrap — dotnet and node dominate it.
+mise install --yes
+{{ end -}}
