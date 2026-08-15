@@ -1,0 +1,39 @@
+{{- if eq .family "windows" -}}
+# winget packages, rendered in from .chezmoidata/packages.toml.
+#
+# winget has no Brewfile equivalent, so each ID is installed individually and
+# the exit code is inspected rather than trusted: winget returns a non-zero code
+# for "no applicable upgrade found" as well as for real failures, and `$ErrorActionPreference`
+# would abort the run on the harmless one.
+
+$ErrorActionPreference = 'Stop'
+
+if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+    Write-Error 'winget is not available. Install App Installer from the Microsoft Store.'
+    exit 1
+}
+
+$packages = @(
+{{- range .packages.windows.winget }}
+    '{{ . }}'
+{{- end }}
+)
+
+foreach ($id in $packages) {
+    # `list` is the idempotency guard: `install` on a present package prints a
+    # warning and returns a code indistinguishable from a genuine failure.
+    winget list --exact --id $id --accept-source-agreements > $null 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  . $id"
+        continue
+    }
+
+    winget install --exact --id $id --silent `
+        --accept-package-agreements --accept-source-agreements
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  + $id"
+    } else {
+        Write-Host "  ! could not install $id (winget exit $LASTEXITCODE)"
+    }
+}
+{{ end -}}

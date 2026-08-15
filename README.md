@@ -36,9 +36,35 @@ docs/                     runbooks and per-machine file examples
 home/                     the chezmoi source directory
   .chezmoi.toml.tmpl      machine detection, rendered at `chezmoi init`
   .chezmoiignore          targets chezmoi must not manage
+  .chezmoidata/           declarative lists the scripts render in
+  .chezmoiscripts/        scripts that run but are never written to $HOME
   dot_zshenv              -> ~/.zshenv
   dot_config/…            -> ~/.config/…
 ```
+
+## Packages
+
+`home/.chezmoidata/packages.toml` holds every system package for every
+platform. The scripts in `.chezmoiscripts/` render the relevant list into
+themselves, so chezmoi's content hash — and therefore the decision to re-run —
+tracks the list exactly. Add a package there, run `chezmoi apply`, and only the
+one platform's install script re-runs.
+
+Each script wraps its whole body in a `family` guard. A script that renders
+empty is one chezmoi skips, so a Fedora box never even sees the apt logic.
+
+| Script | Runs on |
+| --- | --- |
+| `05-repos-debian` / `05-repos-fedora` | third-party sources, before any install |
+| `10-packages-<family>` | brew, apt, dnf, pacman, or winget |
+
+Toolchains do not live here. Anything mise's registry can install belongs in
+mise's config, so it is versioned and identical everywhere; a package earns a
+place in `packages.toml` only when the registry cannot supply it, and says so
+in a comment.
+
+Under WSL the `desktop` lists and their repositories are skipped — each entry
+duplicates an app on the Windows host.
 
 ## Machine facts
 
@@ -71,7 +97,7 @@ Built so far:
 - [x] chezmoi skeleton and entrypoint
 - [x] machine detection
 - [x] shell and terminal core — zsh, starship, git, kitty
-- [ ] packages
+- [x] packages
 - [ ] mise toolchains
 - [ ] secrets via 1Password
 - [ ] externals — oh-my-zsh, tpm, `~/dev` checkouts
@@ -81,6 +107,8 @@ Built so far:
 - [ ] verification and CI
 - [ ] per-OS runbooks
 
-Applied end to end on macOS, and in containers on Debian 13 and Fedora 41. The
-WSL branch is verified by forcing `isWSL`, since no container reports a
-Microsoft kernel. The Windows branch is written but unexercised.
+Applied end to end on macOS, and in containers on Debian 13 and Fedora 41 —
+where the repo scripts were run for real, twice, and every package name checked
+against the repositories they add. The WSL branch is verified by forcing
+`isWSL`, since no container reports a Microsoft kernel. The Arch and Windows
+branches render correctly but have not been run.

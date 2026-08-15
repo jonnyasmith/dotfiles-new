@@ -1,0 +1,31 @@
+{{- if eq .family "arch" -}}
+#!/bin/sh
+# pacman and AUR packages, rendered in from .chezmoidata/packages.toml.
+#
+# There is no repo script for Arch: everything in `core` is in the official
+# repositories, and the AUR is reached through yay, which is a manual
+# prerequisite rather than something bootstrap can install. Needs sudo.
+
+set -eu
+
+# --needed makes this idempotent: already-current packages are skipped.
+sudo pacman -S --needed --noconfirm \
+{{ range $i, $p := .packages.arch.core }}{{ if $i }} \
+{{ end }}    {{ $p }}{{ end }}
+
+# Nvidia and Qualcomm firmware for the one Arch machine. Split from `core` so a
+# second machine can drop the list without disturbing the rest.
+sudo pacman -S --needed --noconfirm \
+{{ range $i, $p := .packages.arch.hardware }}{{ if $i }} \
+{{ end }}    {{ $p }}{{ end }}
+
+# pacman reads the official repositories only, so the AUR needs yay — see
+# docs/arch.md for installing it.
+if command -v yay >/dev/null 2>&1; then
+    yay -S --needed --noconfirm \
+{{ range $i, $p := .packages.arch.aur }}{{ if $i }} \
+{{ end }}        {{ $p }}{{ end }}
+else
+    echo "  ! yay not installed; see docs/arch.md. Skipping AUR packages." >&2
+fi
+{{ end -}}

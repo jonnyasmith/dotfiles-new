@@ -1,0 +1,82 @@
+{{- if eq .family "fedora" -}}
+#!/bin/sh
+# Third-party dnf repositories, plus the two dnf.conf settings worth having.
+# Runs before the package script for the same reason as the Debian one: dnf
+# cannot resolve a package whose repository it does not know about.
+#
+# Every step is guarded, so a re-run is free. Needs sudo.
+
+set -eu
+
+# `tee --append` is not idempotent — five bootstraps leave five copies of each
+# key — so test before appending.
+for kv in max_parallel_downloads=10 fastestmirror=true; do
+    key=${kv%%=*}
+    if ! grep -qE "^[[:space:]]*${key}[[:space:]]*=" /etc/dnf/dnf.conf; then
+        echo "$kv" | sudo tee -a /etc/dnf/dnf.conf >/dev/null
+    fi
+done
+
+# RPM Fusion (free). VLC is in Fedora's own repositories now, but the codecs
+# behind it are not.
+if ! rpm -q rpmfusion-free-release >/dev/null 2>&1; then
+    sudo dnf install -y \
+        "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm"
+fi
+
+# Provides `config-manager` for the Docker repo below. Ensured out here rather
+# than inside that block, which is guarded by a repo file an earlier run may
+# already have written.
+rpm -q dnf5-plugins >/dev/null 2>&1 || sudo dnf install -y dnf5-plugins
+
+# Fedora's own moby-engine lags upstream and carries no compose plugin.
+if [ ! -f /etc/yum.repos.d/docker-ce.repo ]; then
+    sudo dnf -y config-manager addrepo \
+        --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo
+fi
+
+if [ ! -f /etc/yum.repos.d/1password.repo ]; then
+    sudo rpm --import https://downloads.1password.com/linux/keys/1password.asc
+    printf '%s\n' \
+        '[1password]' \
+        'name=1Password Stable Channel' \
+        'baseurl=https://downloads.1password.com/linux/rpm/stable/$basearch' \
+        'enabled=1' \
+        'gpgcheck=1' \
+        'repo_gpgcheck=1' \
+        'gpgkey=https://downloads.1password.com/linux/keys/1password.asc' \
+        | sudo tee /etc/yum.repos.d/1password.repo >/dev/null
+fi
+
+# VS Code's yum repo; the `code` package resolves only once this exists.
+if [ ! -f /etc/yum.repos.d/vscode.repo ]; then
+    sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+    printf '%s\n' \
+        '[code]' \
+        'name=Visual Studio Code' \
+        'baseurl=https://packages.microsoft.com/yumrepos/vscode' \
+        'enabled=1' \
+        'autorefresh=1' \
+        'type=rpm-md' \
+        'gpgcheck=1' \
+        'gpgkey=https://packages.microsoft.com/keys/microsoft.asc' \
+        | sudo tee /etc/yum.repos.d/vscode.repo >/dev/null
+fi
+
+# Chrome is in no Fedora repository. The rpm's own postinst writes this exact
+# filename, so reusing it stops the machine ending up with two copies.
+if [ ! -f /etc/yum.repos.d/google-chrome.repo ]; then
+    sudo rpm --import https://dl.google.com/linux/linux_signing_key.pub
+    printf '%s\n' \
+        '[google-chrome]' \
+        'name=google-chrome' \
+        'baseurl=https://dl.google.com/linux/chrome/rpm/stable/$basearch' \
+        'enabled=1' \
+        'gpgcheck=1' \
+        'repo_gpgcheck=1' \
+        'gpgkey=https://dl.google.com/linux/linux_signing_key.pub' \
+        | sudo tee /etc/yum.repos.d/google-chrome.repo >/dev/null
+fi
+
+sudo dnf -q check-update || true
+{{ end -}}

@@ -1,0 +1,145 @@
+{{- if eq .family "debian" -}}
+#!/bin/sh
+# Third-party apt sources and the components the packages need. This has to run
+# before the package script: a package manager can install anything, but it
+# cannot be told where to find it after the fact.
+#
+# Hashed on its own contents, so it re-runs only when this file is edited —
+# adding a package to packages.toml does not redo the repo setup.
+#
+# Every step is guarded, so a re-run is free. Needs sudo.
+
+set -eu
+
+[ -r /etc/os-release ] && . /etc/os-release
+
+# The key fetches below need curl and gpg, and a minimal Debian has neither.
+if ! command -v curl >/dev/null 2>&1 || ! command -v gpg >/dev/null 2>&1; then
+    sudo apt-get update
+    sudo apt-get install -y ca-certificates curl gnupg
+fi
+
+# Without this, ttf-mscorefonts-installer raises a debconf dialog for the
+# Microsoft EULA and any non-interactive apt run hangs on it indefinitely.
+if command -v debconf-set-selections >/dev/null 2>&1; then
+    echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" \
+        | sudo debconf-set-selections
+fi
+
+# Debian's installer writes `main non-free-firmware` only, which leaves
+# ttf-mscorefonts-installer (contrib) and unrar (non-free) unresolvable. Both
+# source layouts are live: trixie's installer writes the deb822 .sources,
+# bookworm and anything upgraded or debootstrapped writes the one-line
+# sources.list. Only debian.org entries are touched, so a derivative's own
+# repos — and Ubuntu's different component names — are left alone.
+apt_add_components() {
+    apt_src="$1"; apt_prog="$2"
+    [ -f "$apt_src" ] || return 0
+    grep -q 'debian\.org' "$apt_src" || return 0
+    apt_tmp="$(mktemp)"
+    if awk "$apt_prog" "$apt_src" >"$apt_tmp" && [ -s "$apt_tmp" ] \
+       && ! cmp -s "$apt_tmp" "$apt_src"; then
+        sudo install -m 0644 "$apt_tmp" "$apt_src"
+    fi
+    rm -f "$apt_tmp"
+}
+
+# `non-free-firmware` must not satisfy the `non-free` test, hence the trailing
+# space-or-end on every match.
+apt_add_components /etc/apt/sources.list.d/debian.sources '
+    /^Components:/ {
+        if ($0 !~ /[ \t]contrib([ \t]|$)/)  $0 = $0 " contrib"
+        if ($0 !~ /[ \t]non-free([ \t]|$)/) $0 = $0 " non-free"
+    }
+    { print }'
+apt_add_components /etc/apt/sources.list '
+    /^[ \t]*deb(-src)?[ \t]/ && /debian\.org/ {
+        if ($0 !~ /[ \t]contrib([ \t]|$)/)  $0 = $0 " contrib"
+        if ($0 !~ /[ \t]non-free([ \t]|$)/) $0 = $0 " non-free"
+    }
+    { print }'
+
+# Docker publishes repos for debian and raspbian, so on a derivative $ID is a
+# name that 404s. $ID_LIKE decides.
+if [ ! -f /etc/apt/sources.list.d/docker.list ]; then
+    case " ${ID:-} ${ID_LIKE:-} " in
+        *" raspbian "*) docker_distro=raspbian ;;
+        *" debian "*)   docker_distro=debian ;;
+        *)              docker_distro= ;;
+    esac
+    # VERSION_CODENAME is absent on Debian testing/unstable and on several
+    # container images.
+    docker_codename="${VERSION_CODENAME:-}"
+
+    if [ -z "$docker_distro" ] || [ -z "$docker_codename" ]; then
+        echo "  ! no Docker repo for ID=${ID:-unset} codename=${docker_codename:-unset}; skipping"
+    else
+        sudo install -m 0755 -d /etc/apt/keyrings
+        # Dearmoured to a temp file and size-checked before anything reaches
+        # /etc: docker.list is the idempotency guard, so an empty keyring
+        # written beside it would never be retried.
+        docker_key="$(mktemp)"
+        if curl -fsSL "https://download.docker.com/linux/${docker_distro}/gpg" \
+             | gpg --dearmor >"$docker_key" && [ -s "$docker_key" ]; then
+            sudo install -m 0644 "$docker_key" /etc/apt/keyrings/docker.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/${docker_distro} ${docker_codename} stable" \
+                | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+        else
+            echo "  ! could not fetch the Docker signing key; skipping the repo"
+        fi
+        rm -f "$docker_key"
+    fi
+fi
+
+{{ if not .isWSL -}}
+# --- desktop app repos ---
+#
+# Rendered only off WSL. Under WSL each of these serves an app that duplicates
+# one on the Windows host, so the sources would be dead weight apt still has to
+# fetch on every update.
+
+# apt, not snap: the snap build reaches neither the SSH agent nor system
+# authentication, which is the entire reason 1Password is on these machines.
+if [ ! -f /etc/apt/sources.list.d/1password.list ]; then
+    curl -sS https://downloads.1password.com/linux/keys/1password.asc \
+        | sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg
+    echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/amd64 stable main' \
+        | sudo tee /etc/apt/sources.list.d/1password.list >/dev/null
+    sudo mkdir -p /etc/debsig/policies/AC2D62742012EA22/
+    curl -sS https://downloads.1password.com/linux/debian/debsig/1password.pol \
+        | sudo tee /etc/debsig/policies/AC2D62742012EA22/1password.pol >/dev/null
+    sudo mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22
+    curl -sS https://downloads.1password.com/linux/keys/1password.asc \
+        | sudo gpg --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
+fi
+
+if [ ! -f /etc/apt/sources.list.d/vscode.sources ]; then
+    wget -qO- https://packages.microsoft.com/keys/microsoft.asc \
+        | sudo gpg --dearmor -o /usr/share/keyrings/microsoft.gpg
+    printf '%s\n' \
+        'Types: deb' \
+        'URIs: https://packages.microsoft.com/repos/code' \
+        'Suites: stable' \
+        'Components: main' \
+        'Architectures: amd64,arm64,armhf' \
+        'Signed-By: /usr/share/keyrings/microsoft.gpg' \
+        | sudo tee /etc/apt/sources.list.d/vscode.sources >/dev/null
+fi
+
+# Proprietary, so in no distribution repository. The deb's own postinst writes
+# this exact filename, so reusing the name avoids a duplicate source.
+if [ ! -f /etc/apt/sources.list.d/google-chrome.list ]; then
+    chrome_key="$(mktemp)"
+    if curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
+         | gpg --dearmor >"$chrome_key" && [ -s "$chrome_key" ]; then
+        sudo install -m 0644 "$chrome_key" /usr/share/keyrings/google-chrome.gpg
+        echo 'deb [signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main' \
+            | sudo tee /etc/apt/sources.list.d/google-chrome.list >/dev/null
+    else
+        echo "  ! could not fetch the Google Chrome signing key; skipping the repo"
+    fi
+    rm -f "$chrome_key"
+fi
+{{ end }}
+sudo apt-get update
+{{ end -}}

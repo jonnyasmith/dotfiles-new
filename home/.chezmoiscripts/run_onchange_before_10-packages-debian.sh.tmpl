@@ -1,0 +1,35 @@
+{{- if eq .family "debian" -}}
+#!/bin/sh
+# apt packages, rendered in from .chezmoidata/packages.toml so chezmoi's content
+# hash changes — and this re-runs — only when a package is added or removed.
+#
+# Assumes run_onchange_before_05-repos-debian.sh has already added the
+# third-party sources and run `apt-get update`. Needs sudo.
+
+set -eu
+
+export DEBIAN_FRONTEND=noninteractive
+
+# One batch: a missing package here is a broken machine, so the whole install
+# should fail rather than limp on.
+sudo apt-get install -y \
+{{ range $i, $p := .packages.debian.core }}{{ if $i }} \
+{{ end }}    {{ $p }}{{ end }}
+
+{{ if .isWSL -}}
+echo "  . wsl: the desktop apps come from the Windows host, skipped"
+{{- else -}}
+# One at a time, unlike the batch above. Each of these comes from a third-party
+# repo the repo script is allowed to skip when a key fetch fails, and one
+# unavailable app should not take the other four down with it.
+for pkg in {{ .packages.debian.desktop | join " " }}; do
+    if dpkg -s "$pkg" >/dev/null 2>&1; then
+        echo "  . $pkg"
+    elif sudo apt-get install -y "$pkg"; then
+        echo "  + $pkg"
+    else
+        echo "  ! could not install $pkg"
+    fi
+done
+{{- end }}
+{{ end -}}

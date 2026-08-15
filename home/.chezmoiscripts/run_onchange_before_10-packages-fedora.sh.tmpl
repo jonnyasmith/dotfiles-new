@@ -1,0 +1,30 @@
+{{- if eq .family "fedora" -}}
+#!/bin/sh
+# dnf packages, rendered in from .chezmoidata/packages.toml so chezmoi's content
+# hash changes — and this re-runs — only when a package is added or removed.
+#
+# Assumes run_onchange_before_05-repos-fedora.sh has already added the
+# third-party repositories. Needs sudo.
+#
+# There is no WSL branch: Fedora is a bare-metal target here, and .isWSL is
+# reserved for the Debian guest.
+
+set -eu
+
+sudo dnf install -y \
+{{ range $i, $p := .packages.fedora.core }}{{ if $i }} \
+{{ end }}    {{ $p }}{{ end }}
+
+# One at a time, unlike the batch above. Each comes from a third-party repo the
+# repo script is allowed to skip, and one unavailable app should not take the
+# others down with it.
+for pkg in {{ .packages.fedora.desktop | join " " }}; do
+    if rpm -q "$pkg" >/dev/null 2>&1; then
+        echo "  . $pkg"
+    elif sudo dnf install -y "$pkg"; then
+        echo "  + $pkg"
+    else
+        echo "  ! could not install $pkg"
+    fi
+done
+{{ end -}}

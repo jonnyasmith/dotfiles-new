@@ -1,0 +1,198 @@
+# Every system package, for every platform, in one place. Read by the
+# run_onchange_ scripts in .chezmoiscripts/, which re-run whenever a list here
+# changes: chezmoi hashes the rendered script, and the lists are rendered into
+# it.
+#
+# Developer toolchains do NOT belong here. Anything mise's registry can install
+# is a [tools] entry in dot_config/mise/config.toml instead, so it is versioned
+# and identical on every OS. A package earns a place below only when the
+# registry cannot supply it, or supplies something different — each such case
+# carries a `registry-skip:` note.
+#
+# `parity-skip:` marks a package deliberately absent from another Linux family,
+# so a parity check cannot mistake the gap for an oversight.
+#
+# `desktop` lists are skipped under WSL: each entry duplicates an app on the
+# Windows host, and a second copy inside the guest cannot reach the display,
+# the SSH agent, or the host's file associations.
+
+# --------------------------------------------------------------- macOS --
+[packages.darwin]
+# mise itself is absent deliberately: the bootstrap installs it before any of
+# this runs, and `brew install mise` would be a second owner of one binary.
+formulae = [
+    "avrdude",
+    "btop",      # registry-skip: the registry's aqua backend publishes Linux binaries only
+    "git",
+    "htop",
+    "mosquitto",
+    "platformio",
+    "tree",      # registry-skip: the registry's `tree` is a Rust reimplementation with different flags
+    "wget",
+    "zsh",
+]
+
+# Linked, because rustup-init manages its own toolchain directory outside mise
+# and its shims have to be on PATH.
+linkedFormulae = ["rustup"]
+
+# microsoft-auto-update is absent: the Microsoft apps pull it in themselves.
+casks = [
+    "1password",
+    "alfred",
+    "brave-browser",
+    "chatgpt",
+    "claude",
+    "codex",
+    "fluidvoice",
+    "font-fira-mono-nerd-font",
+    "ghostty",
+    "google-chrome",
+    "inkscape",
+    "karabiner-elements",
+    "kitty",
+    "microsoft-azure-storage-explorer",
+    "microsoft-teams",
+    "miro",
+    "obsidian",
+    "openttd",
+    "orbstack",
+    "parallels",
+    "rectangle",
+    "repo-prompt",
+    "slack",
+    "todoist-app",
+    "visual-studio-code",
+]
+
+# ------------------------------------------------- Debian / Ubuntu / WSL --
+[packages.debian]
+core = [
+    "build-essential",           # gcc/make/libc headers; matches Fedora's @development-tools and Arch's base-devel
+    "ca-certificates",           # Docker-repo prerequisite, and what makes HTTPS apt sources work
+    "containerd.io",             # parity-skip: Arch ships the whole engine as `docker`
+    "curl",
+    "dbus-x11",                  # dbus-launch, needed by gnome-tweaks over SSH/X
+    "docker-buildx-plugin",      # parity-skip: Arch ships the whole engine as `docker`
+    "docker-ce",                 # parity-skip: Arch ships the whole engine as `docker`
+    "docker-ce-cli",             # parity-skip: Arch ships the whole engine as `docker`
+    "docker-compose-plugin",     # `docker compose`. parity-skip: Arch ships this as `docker-compose`
+    "git",
+    "htop",
+    "kitty",
+    "nala",                      # the apt front-end used throughout docs/debian.md
+    "python3-pynvim",            # nvim's :checkhealth python3 provider. python3-neovim is a transitional dummy, absent from current Debian
+    "socat",                     # 1Password SSH-agent relay under WSL
+    "ttf-mscorefonts-installer", # contrib; EULA pre-seeded by the repo script, or apt blocks on a debconf dialog
+    "tree",                      # registry-skip: see the macOS entry
+    "unrar",                     # non-free, enabled by the repo script
+    "unzip",
+    "wget",
+    "xdg-utils",                 # xdg-open, the only route from nvim's markdown preview to a browser
+    "xz-utils",                  # parity-skip: Fedora calls this `xz`
+    "zip",
+    "zsh",                       # the login shell set during bootstrap
+]
+
+desktop = [
+    "1password",           # apt, not snap: the snap build reaches neither the SSH agent nor system authentication, which is the whole point of it. parity-skip: Arch takes this from the AUR
+    "code",                # registry-skip: the registry's `code` is an unrelated coding CLI. parity-skip: Arch takes visual-studio-code-bin from the AUR
+    "google-chrome-stable",# parity-skip: Arch has no official Chrome package, so it comes from the AUR
+    "libavcodec-extra",    # parity-skip: Fedora and Arch get these codecs from RPM Fusion and the base repos
+    "vlc",
+]
+
+# --------------------------------------------------------------- Fedora --
+[packages.fedora]
+core = [
+    "@development-tools",    # toolchain group; matches apt's build-essential
+    "containerd.io",         # parity-skip: Arch ships the whole engine as `docker`
+    "curl",
+    "docker-buildx-plugin",  # parity-skip: Arch ships the whole engine as `docker`
+    "docker-ce",             # parity-skip: Arch ships the whole engine as `docker`
+    "docker-ce-cli",         # parity-skip: Arch ships the whole engine as `docker`
+    "docker-compose-plugin", # parity-skip: Arch ships this as `docker-compose`
+    "git",
+    "htop",
+    "kitty",
+    "python3-neovim",        # the :checkhealth python3 provider; Fedora keeps the old source name
+    "tree",                  # registry-skip: see the macOS entry
+    "unzip",
+    "wget",
+    "xdg-utils",
+    "xz",                    # parity-skip: Debian calls this xz-utils
+    "zip",
+    "zsh",
+]
+
+desktop = [
+    "1password",            # registry-skip: the registry's `1password` is the CLI, not the desktop app. parity-skip: Arch takes this from the AUR
+    "code",                 # registry-skip: see the Debian entry
+    "google-chrome-stable", # parity-skip: see the Debian entry
+    "vlc",
+]
+
+# ----------------------------------------------------------------- Arch --
+# Not a target of the bootstrap guide, but a live machine runs it. Only the
+# official repos are declarative; pacman cannot read the AUR, so those packages
+# go through yay in the setup script.
+[packages.arch]
+core = [
+    "base-devel",          # toolchain group, and a yay prerequisite
+    "bind",                # dig/nslookup. parity-skip: Debian calls this dnsutils
+    "curl",
+    "docker",              # parity-skip: Debian and Fedora take the Docker CE package set instead
+    "docker-compose",      # registry-skip: the registry ships a standalone binary, not the CLI plugin `docker compose` resolves. parity-skip: the others use docker-compose-plugin
+    "extension-manager",   # GUI for GNOME extensions; in extra, not the AUR
+    "git",
+    "htop",
+    "kitty",
+    "less",
+    "nano",
+    "net-tools",
+    "powertop",
+    "python-pynvim",       # the :checkhealth python3 provider
+    "rsync",
+    "stress",              # required by the thermal verification in docs/arch.md
+    "tlp",
+    "tlp-rdw",
+    "tree",                # registry-skip: see the macOS entry
+    "unzip",
+    "vlc",
+    "wget",
+    "xdg-utils",
+    "xz",                  # parity-skip: Debian calls this xz-utils
+    "zip",
+    "zsh",
+]
+
+# Dell XPS with an Nvidia card. Harmless elsewhere, but not universal — split
+# out so a second Arch machine can drop them without touching `core`.
+hardware = [
+    "linux-firmware-qcom", # Qualcomm wifi firmware
+    "nvidia-open-lts",     # LTS-kernel module; `nvidia-lts` is retired
+    "nvidia-settings",
+    "nvidia-utils",
+]
+
+aur = [
+    "1password",
+    "auto-cpufreq",
+    "envycontrol",
+    "google-chrome",
+    "visual-studio-code-bin",
+]
+
+# -------------------------------------------------------------- Windows --
+[packages.windows]
+winget = [
+    "AgileBits.1Password",
+    "DEVCOM.JetBrainsMonoNerdFont", # not a Fira Mono Nerd Font as on macOS: winget has no manifest for one under any publisher
+    "Git.Git",
+    "Google.Chrome",
+    "Microsoft.PowerShell",
+    "Microsoft.PowerToys",
+    "Microsoft.VisualStudioCode",
+    "RandyRants.SharpKeys",         # registry-level scancode remaps apply at the logon screen, where PowerToys Keyboard Manager is not yet running
+    "RedHat.Podman-Desktop",        # Docker Desktop is deliberately absent
+]

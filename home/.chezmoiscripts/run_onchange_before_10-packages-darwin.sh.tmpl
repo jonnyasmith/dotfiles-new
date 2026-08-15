@@ -1,0 +1,38 @@
+{{- if eq .family "darwin" -}}
+#!/bin/sh
+# Homebrew owns every macOS system package. The list is rendered in from
+# .chezmoidata/packages.toml, so chezmoi's content hash changes whenever a
+# package is added or removed and this script re-runs — and only then.
+#
+# `before_`, so the packages exist by the time chezmoi writes the config files
+# that expect them.
+
+set -eu
+
+# Apple Silicon prefix. Homebrew's installer is idempotent but not quiet, so it
+# is guarded rather than run every time.
+if [ ! -x /opt/homebrew/bin/brew ]; then
+    echo "==> installing Homebrew"
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# Written to a temp file rather than tracked in the repo: packages.toml is the
+# single source of truth, and a checked-in Brewfile would be a second one that
+# could drift.
+brewfile="$(mktemp)"
+trap 'rm -f "$brewfile"' EXIT
+
+cat >"$brewfile" <<'BREWFILE'
+{{ range .packages.darwin.formulae }}brew "{{ . }}"
+{{ end }}
+{{- range .packages.darwin.linkedFormulae }}brew "{{ . }}", link: true
+{{ end }}
+{{- range .packages.darwin.casks }}cask "{{ . }}"
+{{ end }}
+BREWFILE
+
+# No `--cleanup`: it uninstalls anything absent from the file, which turns a
+# forgotten line into data loss on a daily driver.
+brew bundle --file="$brewfile"
+{{ end -}}
