@@ -418,11 +418,11 @@ Built so far:
 Applied end to end on macOS, and in a Debian 13 container — where the repo
 scripts were run for real, twice, and every package name checked against the
 repositories they add. The WSL branch is verified the same way, by forcing
-`isWSL`, since no container reports a Microsoft kernel. Fedora 41 got as far as
-the mise step, adding its repos and packages, before GitHub rate-limited the
-container's anonymous API calls; the same failure then reproduced on a Debian
-container that had passed an hour earlier, so it is the limit and not the
-distro. CI now does that apply on every push with a token, which is the fix.
+`isWSL`, since no container reports a Microsoft kernel. Fedora 41 passes the
+same way, twice. An earlier Fedora run died at the mise step on GitHub's
+anonymous API rate limit — the same failure then reproduced on a Debian
+container that had passed an hour before, which is what identified it as the
+limit rather than the distro. CI passes a token for that reason.
 
 On Arch, `38-arch-services` has been run twice in a container: it enables
 `fstrim.timer`, uncomments pacman's `Color`, and writes `vm.swappiness` once
