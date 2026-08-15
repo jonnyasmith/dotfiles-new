@@ -1,0 +1,64 @@
+# OPENSPEC:START
+# OpenSpec shell completions configuration
+fpath=("$HOME/.oh-my-zsh/custom/completions" $fpath)
+autoload -Uz compinit
+compinit
+# OPENSPEC:END
+
+export ZSH=$HOME/.oh-my-zsh
+
+export TERM='xterm-256color'
+
+# Keep in sync with the plugin clones in .chezmoiexternal.toml.
+plugins=(
+    zsh-autosuggestions
+    fast-syntax-highlighting
+)
+
+source $ZSH/oh-my-zsh.sh
+
+for config (~/.config/zsh/*.zsh) source $config
+
+# DOTNET_ROOT and ~/.dotnet/tools come from mise's config, not from here.
+eval "$(mise activate zsh)"
+
+# Demote the shims below what `mise activate` just added. From .zshenv.
+mise-shims-last
+
+# compinit has already run (the OPENSPEC block above), so a _mise written now
+# is not picked up until the next shell — hence the manual autoload.
+_mise_comp="$HOME/.oh-my-zsh/custom/completions/_mise"
+if [[ ! -f $_mise_comp ]]; then
+	mkdir -p "${_mise_comp:h}"
+	mise completion zsh >| "$_mise_comp"
+	autoload -Uz _mise
+	typeset -g -A _comps
+	_comps[mise]=_mise
+else
+	mise completion zsh >| "$_mise_comp" &|
+fi
+unset _mise_comp
+
+source <(fzf --zsh)
+
+eval "$(zoxide init zsh)"
+eval "$(starship init zsh)"
+# Optional per-machine tools, guarded so a machine without one stays quiet.
+[ -d "$HOME/.antigravity/antigravity/bin" ] && export PATH="$HOME/.antigravity/antigravity/bin:$PATH"
+
+# Completions only — the runtime and PATH come from mise and .zshenv.
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+
+[ -d "$HOME/.opencode/bin" ] && export PATH="$HOME/.opencode/bin:$PATH"
+
+bindkey '^ ' autosuggest-accept
+bindkey '\e' autosuggest-clear
+insert-buffer-newline() {
+    LBUFFER+=$'\n'
+}
+zle -N insert-buffer-newline
+bindkey '^[[27;2;13~' insert-buffer-newline
+
+[ -d "$HOME/.lmstudio/bin" ] && export PATH="$PATH:$HOME/.lmstudio/bin"
+
+[ -f "$HOME/dev/worktree-cli/examples/wrappers/zsh.sh" ] && source "$HOME/dev/worktree-cli/examples/wrappers/zsh.sh"

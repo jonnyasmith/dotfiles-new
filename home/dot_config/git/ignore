@@ -1,0 +1,22 @@
+# Global gitignore. Git reads this path by default (XDG), so no
+# core.excludesFile setting is needed.
+
+**/.claude/settings.local.json
+
+# `mise use --env local <tool>@<ver>` writes these. A per-project pin that is
+# mine alone, not the team's, and never the global config.
+mise.local.toml
+mise.*.local.toml
+
+~
+npm-debug.log
+vim/vim.symlink/plugged/
+nvim/nvim.symlink/plugged/
+plug.vim.old
+.DS_Store
+config/iterm2/AppSupport
+.zsh_history
+config/containers/
+config/jgit/
+config/simple-update-notifier/
+.config/tmux/plugins

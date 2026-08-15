@@ -1,0 +1,121 @@
+[user]
+    name = Jonny Smith
+    email = jonny.asmith@gmail.com
+[github]
+    user = jonnyasmith
+[alias]
+    a    = add -A
+    b    = branch
+    c    = commit
+    ca   = commit --amend
+    caa  = commit --amend -a
+    caan = commit --amend -a --no-edit
+    cam  = commit -a -m
+    cm   = commit -m
+    co   = checkout
+    cob  = checkout -b
+    cp   = cherry-pick -x
+    d    = diff --ignore-space-at-eol -b -w --ignore-blank-lines
+    f    = fetch
+    m    = merge
+    mt   = mergetool
+    p    = pull
+    r    = rebase
+    i    = init
+    rl   = reflog
+    s    = status -s -b
+    sb   = show-branch
+    t    = tag
+    l    = log --pretty=format:'%C(bold blue)%h%C(reset) %C(reset)%s%C(reset) %C(bold red)%an%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)' --abbrev-commit --date=relative
+    ll   = l -10
+    lg   = log --graph --abbrev-commit --decorate --date=relative --format=format:'%C(bold blue)%h%C(reset) %C(reset)%s%C(reset) %C(bold red)%an%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)'
+
+[color]
+    diff = auto
+    status = auto
+    branch = auto
+    interactive = auto
+    ui = auto
+[color "branch"]
+    current = green bold
+    local = green
+    remote = red bold
+[color "diff"]
+    meta = yellow bold
+    frag = magenta bold
+    old = red bold
+    new = green bold
+[color "status"]
+    added = green bold
+    changed = yellow bold
+    untracked = red
+[color "sh"]
+    branch = yellow
+# Rebase is the only way a pull integrates: `pull.rebase` still fast-forwards
+# when it can, because a rebase with nothing to replay is one. `autosetuprebase`
+# alone missed branches not created from a remote-tracking ref, a clone's
+# default branch among them. Pruning is config, not a flag, so it also covers
+# the implicit fetch inside a pull and anything else that fetches.
+[pull]
+    rebase = true
+[fetch]
+    prune = true
+    pruneTags = true
+
+[push]
+    default = current
+    autoSetupRemote = true
+[branch]
+    autosetuprebase = always
+[diff]
+    renames = copies
+    mnemonicprefix = true
+[difftool]
+    prompt = false
+[apply]
+    whitespace = nowarn
+[core]
+  pager = less -FXRS -x2
+  editor = vim
+  sshCommand = ssh
+[rerere]
+    enabled = true
+[gitsh]
+    defaultCommand = s
+[grep]
+    patternType = extended
+    lineNumber = true
+[merge]
+    tool = smerge
+[mergetool]
+    keepBackup = false
+[init]
+	defaultBranch = main
+
+# A missing include is silently ignored by git, so a machine without
+# config.local still gets a working personal config — and quietly commits work
+# repos under the personal identity. Untracked and per-machine, because it
+# names the work org — create it from docs/git-config.local.example.
+[include]
+    path = config.local
+
+# Must stay below [user]: later values win. The `v3/` prefix is required
+# because `**` is only wildcard-magic directly after a `/` — `...azure.com:**`
+# matches nothing and fails silently.
+[includeIf "hasconfig:remote.*.url:git@ssh.dev.azure.com:v3/**"]
+    path = config.work
+
+# Rendered from config.os.tmpl; git ignores the include until it exists.
+[include]
+    path = config.os
+# Written by `gh auth login`, then rewritten by hand: gh emits the absolute
+# mise install path, which pins the helper to one gh version and does not exist
+# on the other machines this file is applied to. Resolved off PATH instead,
+# which mise's shims satisfy. The bare `helper =` clears anything inherited
+# from system or global config before this one is appended.
+[credential "https://github.com"]
+    helper =
+    helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+    helper =
+    helper = !gh auth git-credential

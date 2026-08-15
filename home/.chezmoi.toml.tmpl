@@ -1,0 +1,47 @@
+# Machine facts, resolved once at `chezmoi init` and written to
+# ~/.config/chezmoi/chezmoi.toml. Every template downstream branches on these
+# rather than re-deriving them, so the detection logic lives in exactly one
+# place.
+#
+# This file is NOT re-rendered by `chezmoi apply`. After a distro upgrade or a
+# move between bare metal and WSL, re-run `chezmoi init` to refresh the values.
+# A .chezmoidata file cannot do this job: chezmoi loads those verbatim and
+# never treats them as templates.
+
+{{/* .chezmoi.osRelease and .chezmoi.kernel are empty maps off Linux, so every
+     read below is guarded rather than assumed. Note this action does NOT trim
+     leftwards: doing so pulls [data] up onto the last line of the comment
+     block above, where the leading # swallows it. */ -}}
+{{- $family := .chezmoi.os -}}
+{{- $isWSL := false -}}
+
+{{- if eq .chezmoi.os "linux" -}}
+{{-   $probe := "" -}}
+{{-   if hasKey .chezmoi.osRelease "id" -}}
+{{-     $probe = printf "%s %s" $probe .chezmoi.osRelease.id -}}
+{{-   end -}}
+{{- /* idLike catches the derivatives: Raspberry Pi OS and Ubuntu both report
+       a distinct id but declare debian here. */ -}}
+{{-   if hasKey .chezmoi.osRelease "idLike" -}}
+{{-     $probe = printf "%s %s" $probe .chezmoi.osRelease.idLike -}}
+{{-   end -}}
+{{-   $probe = lower $probe -}}
+{{-   if or (contains "debian" $probe) (contains "ubuntu" $probe) (contains "raspbian" $probe) -}}
+{{-     $family = "debian" -}}
+{{-   else if or (contains "fedora" $probe) (contains "rhel" $probe) -}}
+{{-     $family = "fedora" -}}
+{{-   else if contains "arch" $probe -}}
+{{-     $family = "arch" -}}
+{{-   end -}}
+{{- /* The only reliable WSL signal available to a Linux process: WSL2 ships a
+       Microsoft-built kernel. WSL_DISTRO_NAME is env, so it is absent from
+       anything not launched inside an interactive shell. */ -}}
+{{-   if hasKey .chezmoi.kernel "osrelease" -}}
+{{-     $isWSL = contains "microsoft" (lower .chezmoi.kernel.osrelease) -}}
+{{-   end -}}
+{{- end -}}
+
+[data]
+    # darwin | debian | fedora | arch | windows | linux (unrecognised)
+    family = {{ $family | quote }}
+    isWSL = {{ $isWSL }}

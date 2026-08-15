@@ -1,0 +1,59 @@
+# OS-specific zsh aliases. Sourced after aliases.zsh by the glob in .zshrc, so
+# anything here overrides the shared file.
+#
+# Templated rather than probed because the two branches are mutually exclusive
+# and known at apply time. Where the *distro* decides — the package-manager
+# aliases below — the probe stays at runtime, because one Linux branch serves
+# apt, nala and dnf machines alike.
+
+# dnf has no separate metadata step: dnf5 `upgrade` refreshes repos itself, so
+# `duu` is one command where `auu` and `nuu` are two.
+{{- if eq .chezmoi.os "darwin" }}
+alias buu="brew update && brew upgrade"
+{{- else if eq .chezmoi.os "linux" }}
+command -v brew >/dev/null && alias buu="brew update && brew upgrade"
+command -v apt  >/dev/null && alias auu="sudo apt update && sudo apt upgrade -y"
+command -v nala >/dev/null && alias nuu="sudo nala update && sudo nala upgrade -y"
+command -v dnf  >/dev/null && alias duu="sudo dnf upgrade -y"
+{{- end }}
+
+{{- if eq .chezmoi.os "darwin" }}
+alias fs="stat -f \"%z bytes\""
+{{- else if eq .chezmoi.os "linux" }}
+alias fs="stat -c \"%s bytes\""
+{{- end }}
+
+{{- if eq .chezmoi.os "darwin" }}
+alias localip="ipconfig getifaddr en1"
+{{- else if eq .chezmoi.os "linux" }}
+alias localip="hostname -I"
+{{- end }}
+
+{{- if eq .chezmoi.os "darwin" }}
+alias flush="dscacheutil -flushcache"
+{{- else if eq .chezmoi.os "linux" }}
+alias flush="sudo resolvectl flush-caches"
+{{- end }}
+
+# macOS pins en1; on Linux the interface name varies, so capture on all.
+{{- if eq .chezmoi.os "darwin" }}
+alias sniff="sudo ngrep -d 'en1' -t '^(GET|POST) ' 'tcp and port 80'"
+alias httpdump="sudo tcpdump -i en1 -n -s 0 -w - | grep -a -o -E \"Host\: .*|GET \/.*\""
+{{- else if eq .chezmoi.os "linux" }}
+alias sniff="sudo ngrep -d any -t '^(GET|POST) ' 'tcp and port 80'"
+alias httpdump="sudo tcpdump -i any -n -s 0 -w - | grep -a -o -E \"Host\: .*|GET \/.*\""
+{{- end }}
+
+{{- if eq .chezmoi.os "darwin" }}
+alias emptytrash="sudo rm -rfv /Volumes/*/.Trashes; rm -rfv ~/.Trash"
+{{- else if eq .chezmoi.os "linux" }}
+alias emptytrash="rm -rfv ~/.local/share/Trash/files/* ~/.local/share/Trash/info/*"
+{{- end }}
+{{- if eq .chezmoi.os "darwin" }}
+
+alias cleanup="find . -name '*.DS_Store' -type f -ls -delete"
+
+# macOS-only: no portable Linux equivalent worth faking.
+alias hidedesktop="defaults write com.apple.finder CreateDesktop -bool false && killall Finder"
+alias showdesktop="defaults write com.apple.finder CreateDesktop -bool true && killall Finder"
+{{- end }}

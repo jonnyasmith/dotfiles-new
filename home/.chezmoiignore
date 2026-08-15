@@ -1,0 +1,7 @@
+# .chezmoiroot points chezmoi at home/, so README.md, docs/ and .github/ at the
+# repo root are already invisible to it and need no entry here.
+
+# Untracked, per-machine, and holding the work org and email. The tracked
+# ~/.config/git/config includes both; git ignores an include that is absent.
+.config/git/config.local
+.config/git/config.work

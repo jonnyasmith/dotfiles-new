@@ -1,0 +1,51 @@
+# macOS runs these GUIs out of their app bundles; on Linux the same tools ship
+# a CLI entry point on PATH. merge.tool = smerge itself lives in the shared
+# ~/.config/git/config; only the invocations differ.
+{{- if eq .chezmoi.os "darwin" }}
+[mergetool "smerge"]
+    cmd = /Applications/Sublime Merge.app/Contents/SharedSupport/bin/smerge "\"$BASE\"" "\"$LOCAL\"" "\"$REMOTE\"" -o "\"$MERGED\""
+    keepTemporaries = false
+    trustExitCode = false
+    keepBackup = false
+[mergetool "p4merge"]
+    cmd = /Applications/p4merge.app/Contents/Resources/launchp4merge "\"$PWD/$BASE\"" "\"$PWD/$REMOTE\"" "\"$PWD/$LOCAL\"" "\"$PWD/$MERGED\""
+    keepTemporaries = false
+    trustExitCode = false
+    keepBackup = false
+[difftool "p4merge"]
+    cmd = /Applications/p4merge.app/Contents/Resources/launchp4merge "\"$REMOTE\"" "\"$LOCAL\""
+{{- else if eq .chezmoi.os "linux" }}
+{{- if .isWSL }}
+[core]
+    # WSL. 1Password runs on the Windows host and its agent is the
+    # \\.\pipe\openssh-ssh-agent named pipe, which no Linux process can open;
+    # Windows' own ssh.exe can, and PATH interop resolves the bare name. This
+    # overrides `core.sshCommand = ssh` because config.os is included last.
+    # git only — anything else reaching for the agent still fails.
+    sshCommand = ssh.exe
+{{- end }}
+[mergetool "smerge"]
+    cmd = smerge "\"$BASE\"" "\"$LOCAL\"" "\"$REMOTE\"" -o "\"$MERGED\""
+    keepTemporaries = false
+    trustExitCode = false
+    keepBackup = false
+[mergetool "p4merge"]
+    cmd = p4merge "\"$PWD/$BASE\"" "\"$PWD/$REMOTE\"" "\"$PWD/$LOCAL\"" "\"$PWD/$MERGED\""
+    keepTemporaries = false
+    trustExitCode = false
+    keepBackup = false
+[difftool "p4merge"]
+    cmd = p4merge "\"$REMOTE\"" "\"$LOCAL\""
+{{- else if eq .chezmoi.os "windows" }}
+[core]
+    # Git for Windows bundles its own ssh, which cannot reach 1Password's
+    # \\.\pipe\openssh-ssh-agent named pipe. Windows' own OpenSSH client can.
+    sshCommand = C:/Windows/System32/OpenSSH/ssh.exe
+    autocrlf = input
+[mergetool "smerge"]
+    # Sublime Merge's installer puts smerge on PATH.
+    cmd = smerge "\"$BASE\"" "\"$LOCAL\"" "\"$REMOTE\"" -o "\"$MERGED\""
+    keepTemporaries = false
+    trustExitCode = false
+    keepBackup = false
+{{- end }}

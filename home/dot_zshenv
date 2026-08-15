@@ -1,0 +1,31 @@
+# Vendor installers prepend unguarded and a nested shell re-runs every export
+# below, so keep PATH de-duplicated with the first occurrence winning.
+typeset -U path PATH
+
+# uv installs tools and standalone binaries here.
+export PATH="$HOME/.local/bin:$PATH"
+
+# rustup. Guarded: a fresh machine has no cargo until rustup has run, and an
+# unguarded `.` on a missing file aborts every zsh -c in the session.
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+
+# BUN_INSTALL is bun's global *package* dir, not the runtime: mise owns the
+# `bun` binary, but `bun install -g` still links into $BUN_INSTALL/bin.
+export BUN_INSTALL="$HOME/.bun"
+path=("$BUN_INSTALL/bin" ${path:#"$BUN_INSTALL/bin"})
+export PATH
+
+# The shim position is fought over by three files. Here they go first, so a
+# non-interactive `zsh -c` resolves tools through mise. .zprofile re-asserts
+# that after Homebrew's shellenv prepends itself. .zshrc then demotes them,
+# because `mise activate` installs a real PATH entry that must win in an
+# interactive shell. Defined here so all three can call them.
+mise-shims-first() {
+	path=("$HOME/.local/share/mise/shims" ${path:#"$HOME/.local/share/mise/shims"})
+	export PATH
+}
+mise-shims-last() {
+	path=(${path:#"$HOME/.local/share/mise/shims"} "$HOME/.local/share/mise/shims")
+	export PATH
+}
+mise-shims-first
