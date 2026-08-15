@@ -16,6 +16,20 @@ Targets macOS (Apple Silicon), Windows, Debian (bare metal and WSL2), and Fedora
 sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply jonnyasmith
 ```
 
+That line covers every POSIX platform. On Windows, from an unelevated pwsh:
+
+```powershell
+iex "&{$(irm 'https://get.chezmoi.io/ps1')} -- init --apply jonnyasmith"
+```
+
+Everything a machine needs that an apply *cannot* do — install media, GUI
+sign-ins, licences, permissions, anything gated on a reboot — is in the runbook
+for that platform:
+
+[macOS](docs/macos.md) · [Windows](docs/windows.md) · [WSL](docs/wsl.md) ·
+[Debian](docs/debian.md) · [Fedora](docs/fedora.md) · [Arch](docs/arch.md) ·
+[Raspberry Pi](docs/raspberry-pi.md)
+
 ## Day to day
 
 ```sh
@@ -34,6 +48,7 @@ chezmoi cd              # open a shell in the source directory
 .chezmoiroot              -> "home"
 mise.toml                 tooling for working on this repo, not on a machine
 checks/                   the check suite `mise run check` drives
+docs/                     one runbook per platform, for what an apply cannot do
 .github/workflows/        CI
 home/                     the chezmoi source directory
   .chezmoi.toml.tmpl      machine detection, rendered at `chezmoi init`
@@ -398,7 +413,7 @@ Built so far:
 - [x] OS and desktop settings — macOS defaults, GNOME dconf, COSMIC
 - [x] Debian, WSL, Fedora, Windows
 - [x] verification and CI
-- [ ] per-OS runbooks
+- [x] per-OS runbooks
 
 Applied end to end on macOS, and in a Debian 13 container — where the repo
 scripts were run for real, twice, and every package name checked against the
@@ -407,5 +422,12 @@ repositories they add. The WSL branch is verified the same way, by forcing
 the mise step, adding its repos and packages, before GitHub rate-limited the
 container's anonymous API calls; the same failure then reproduced on a Debian
 container that had passed an hour earlier, so it is the limit and not the
-distro. The Arch and Windows branches render and parse correctly but have not
-been run.
+distro. CI now does that apply on every push with a token, which is the fix.
+
+On Arch, `38-arch-services` has been run twice in a container: it enables
+`fstrim.timer`, uncomments pacman's `Color`, and writes `vm.swappiness` once
+rather than appending. Its TLP and `auto-cpufreq` branches are guarded on those
+packages being installed and have not been exercised. Nothing else on Arch, and
+nothing at all on Windows, has been run — both render and parse, and the
+PowerShell parses under `pwsh`, which is as far as a Mac and a Linux container
+can get.
