@@ -1,0 +1,67 @@
+modelRoles: 
+  smol: anthropic/claude-opus-5:medium
+  slow: anthropic/claude-opus-5:medium
+  designer: anthropic/claude-opus-5:medium
+  tiny: anthropic/claude-haiku-4-5:high
+  advisor: openai-codex/gpt-5.6-sol:medium
+  task: anthropic/claude-opus-5:medium
+  REVIEWER: openai-codex/gpt-5.6-sol:medium
+  default: anthropic/claude-opus-5:medium
+symbolPreset: nerd
+theme: 
+  dark: titanium
+setupVersion: 1
+defaultThinkingLevel: medium
+stt: 
+  enabled: true
+  submitTrigger: say-submit
+  modelName: parakeet
+startup: 
+  checkUpdate: false
+tui: 
+  textSizing: true
+statusLine: 
+  preset: custom
+  leftSegments: 
+    - pi
+    - model
+    - mode
+    - collab
+    - path
+    - git
+    - pr
+    - context_pct
+    - quota
+  rightSegments: 
+    - session_name
+  separator: powerline-thin
+  segmentOptions: 
+    model: 
+      showThinkingLevel: true
+    path: 
+      abbreviate: true
+      maxLength: 40
+      stripWorkPrefix: true
+    git: 
+      showBranch: true
+      showStaged: true
+      showUnstaged: true
+      showUntracked: true
+hideThinkingBlock: true
+github: 
+  enabled: true
+live: 
+  voice: sol
+dev: 
+  autoqaConsent: granted
+task: 
+  maxEffort: medium
+  enableEffort: false
+  agentModelOverrides: 
+    task: "@task"
+    scout: "@smol"
+    sonic: "@smol"
+    librarian: "@smol"
+    designer: "@designer"
+    reviewer: "@slow"
+    security-reviewer: "@default"

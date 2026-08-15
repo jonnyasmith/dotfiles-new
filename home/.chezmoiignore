@@ -21,6 +21,20 @@
 .local/bin/worktree
 {{ end -}}
 
+{{ if ne .family "darwin" -}}
+# Karabiner-Elements is macOS-only. Its config is a keyboard remap for a
+# keyboard driver that cannot exist anywhere else.
+.config/karabiner
+{{ end -}}
+
+{{ if eq .family "windows" -}}
+# tmux does not run on Windows, and btop and htop are POSIX process viewers.
+# The rest of the app configs here are cross-platform and stay.
+.config/tmux
+.config/btop
+.config/htop
+{{ end -}}
+
 {{ if .isWSL -}}
 # 1Password runs on the Windows host under WSL, and its agent config is read
 # there. A copy inside the guest is read by nothing.

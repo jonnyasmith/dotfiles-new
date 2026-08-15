@@ -1,0 +1,5 @@
+# mise owns this binary, so Codex's own updater must not: a self-update writes
+# a binary mise's shim does not point at, and the next `mise upgrade` silently
+# reverts it. Codex is the one AI CLI whose opt-out is a config key rather than
+# an environment variable, which is why this file exists at all.
+check_for_update_on_startup = false

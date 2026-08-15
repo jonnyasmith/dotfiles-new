@@ -172,6 +172,48 @@ build must not take an apply down with it.
 Windows gets none of this. It has no zsh and no tmux, the `~/dev` checkouts live
 in the WSL guest, and creating a symlink there needs Developer Mode.
 
+## App configs, and the state beside them
+
+Every remaining app config is a plain file: nvim, tmux, btop, htop, gh, herdr,
+karabiner, claude, codex, and omp. None needs a template — their contents are
+the same on every platform.
+
+The awkward part is that most of these tools keep state in the same directory
+as their config. `~/.claude` holds sessions and transcripts, `~/.omp/agent`
+holds `agent.db` (a credential store), nvim writes `spell/` and `.netrwhist`
+beside `init.lua`, karabiner drops `automatic_backups/`, herdr opens a socket
+and a log. chezmoi manages only what is in its source directory and ignores
+everything else in the target, so all of that is simply invisible — the long
+denylist the previous setup needed to keep `agent.db` out of git is gone.
+
+Where a tool chose `0600` for its own file or `0700` for its own directory,
+the source name carries `private_` so an apply does not widen it.
+
+Only `~/.config/karabiner` is gated, to macOS. tmux, btop and htop are skipped
+on Windows.
+
+### Configs a tool rewrites
+
+btop, htop, gh, karabiner, codex, claude and omp all rewrite their own config —
+from a TUI, or on exit. The previous setup symlinked some of these so those
+edits landed back in the repo. chezmoi writes real files, so they do not: a
+change made in the app is drift, and the next `chezmoi apply` reverts it.
+
+The workflow is one command with no arguments:
+
+```sh
+chezmoi re-add       # pull every changed managed file back into the source
+chezmoi diff         # ...then read what the app actually changed
+```
+
+`re-add` skips templates, so it cannot flatten `~/.ssh/config` or the git
+identity files back into literal text.
+
+`lazy-lock.json` is managed deliberately, unlike `mise.lock`. It is a shared
+pin — the point is that every machine gets the same plugin revisions — so
+`:Lazy sync` is followed by `chezmoi re-add`. `~/.config/gh/hosts.yml` holds
+the OAuth token and stays unmanaged.
+
 ## Work identity
 
 `chezmoi init` asks whether this is a work machine and, if so, for the work
@@ -198,7 +240,7 @@ Built so far:
 - [x] mise toolchains
 - [x] secrets — 1Password SSH agent, ssh config, work identity
 - [x] externals — oh-my-zsh, tpm, `~/dev` checkouts
-- [ ] remaining app configs — nvim, tmux, gh, btop, htop, claude, codex, omp
+- [x] remaining app configs — nvim, tmux, gh, btop, htop, claude, codex, omp
 - [ ] OS and desktop settings — macOS defaults, GNOME dconf, COSMIC
 - [ ] Debian, WSL, Fedora, Windows
 - [ ] verification and CI

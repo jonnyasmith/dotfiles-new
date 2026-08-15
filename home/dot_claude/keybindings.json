@@ -1,0 +1,13 @@
+{
+  "$schema": "https://www.schemastore.org/claude-code-keybindings.json",
+  "bindings": [
+    {
+      "context": "Global",
+      "bindings": {
+        "ctrl+`": null,
+        "ctrl+e": "chat+externalEditor",
+        "ctrl+'": "terminal:toggle"
+      }
+    }
+  ]
+}
