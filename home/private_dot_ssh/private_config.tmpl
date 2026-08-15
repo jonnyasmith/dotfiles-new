@@ -1,0 +1,70 @@
+# ~/.ssh/config — `chezmoi edit ~/.ssh/config`.
+#
+# One key per host, with IdentitiesOnly. Without it ssh offers every key the
+# agent holds and the first one the server accepts wins — which silently
+# authenticated work repos as the personal account. Past six keys it stops
+# being a correctness problem and becomes a hard failure: ssh exhausts the
+# server's MaxAuthTries and gives up with "Too many authentication failures".
+#
+# Every block is `Match originalhost`, not `Host`. The github-work alias sets
+# HostName github.com, so a `Host github.com` block matches it too — both
+# identities load and agent order picks the account, which is the same bug
+# IdentitiesOnly was meant to close.
+{{- if eq .family "darwin" }}
+
+# ssh_config is first-value-wins, so this Include has to stay above `Host *`.
+# OrbStack is macOS-only, hence the guard.
+Include ~/.orbstack/ssh/config
+{{- end }}
+
+# The .pub stubs name which agent key to use; the private halves never leave
+# 1Password. chezmoi writes them as real files, so they exist from the first
+# apply and only chezmoi can remove them. ssh treats a missing IdentityFile as
+# fatal for the host, so a vanished stub breaks every remote at once.
+# Regenerate them with `~/.ssh/1password/refresh`.
+Match originalhost github.com
+  HostName github.com
+  User git
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1password/github-personal.pub
+
+# ~/.config/git/config.local rewrites work remotes to this alias.
+Match originalhost github-work
+  HostName github.com
+  User git
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1password/github-work.pub
+
+# Only the RSA key is registered with Azure DevOps.
+Match originalhost ssh.dev.azure.com,vs-ssh.visualstudio.com
+  User git
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1password/azure-work.pub
+  PubkeyAcceptedAlgorithms +ssh-rsa
+  HostkeyAlgorithms +ssh-rsa
+
+{{ if eq .family "darwin" -}}
+Host *
+  IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+{{- else if ne .family "windows" -}}
+Host *
+  # Nothing listens here under WSL — git reaches the Windows agent through
+  # ssh.exe instead (core.sshCommand in ~/.config/git/config.os). Written
+  # unconditionally: a stale path and an unset one fail identically.
+  IdentityAgent ~/.1password/agent.sock
+{{- else -}}
+# No IdentityAgent block on Windows. 1Password serves the agent on
+# \\.\pipe\openssh-ssh-agent, which is where Windows' own OpenSSH client looks
+# by default — naming it here would only break the other ssh implementations
+# that read this file.
+{{- end }}
+
+Host pi-development.local
+  HostName pi-development.local
+  User jonny
+  ForwardAgent yes
+
+Host homepi.local
+  HostName homepi.local
+  User jonny
+  ForwardAgent yes

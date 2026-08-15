@@ -41,7 +41,24 @@
 {{-   end -}}
 {{- end -}}
 
+{{/* The work identity is asked for, not read from 1Password. `op` is a package
+     these very scripts install, so it does not exist yet on the run that would
+     need it, and a failed onepasswordRead aborts the whole apply. An org name
+     and an email are not credentials either — the things that are (the SSH
+     keys, gh's OAuth token) never reach a template at all. Answers land in
+     ~/.config/chezmoi/chezmoi.toml, outside the repo. */ -}}
+{{- $work := promptBoolOnce . "work" "Work machine (adds a second git identity)" false -}}
+{{- $workOrgs := "" -}}
+{{- $workEmail := "" -}}
+{{- if $work -}}
+{{-   $workOrgs = promptStringOnce . "workOrgs" "Work GitHub org(s), comma-separated" "" -}}
+{{-   $workEmail = promptStringOnce . "workEmail" "Work git email" "" -}}
+{{- end -}}
+
 [data]
     # darwin | debian | fedora | arch | windows | linux (unrecognised)
     family = {{ $family | quote }}
     isWSL = {{ $isWSL }}
+    work = {{ $work }}
+    workOrgs = {{ $workOrgs | quote }}
+    workEmail = {{ $workEmail | quote }}

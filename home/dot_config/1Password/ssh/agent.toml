@@ -1,0 +1,25 @@
+# The 1Password SSH agent's own config: which vault items it offers, and in
+# what order. This is the whole of the key management on these machines — no
+# private key is ever written to disk, by chezmoi or anything else.
+#
+# Test what the agent is offering with:
+#
+#   ssh-add -l
+#
+# Reference: https://developer.1password.com/docs/ssh/agent/config
+
+# The `item` strings are load-bearing: ~/.ssh/1password/refresh maps them to
+# the stub filenames ~/.ssh/config pins, so renaming one in the vault means
+# editing map() there as well.
+
+[[ssh-keys]]
+item = "SSH Key - Ed25519"
+vault = "Personal"
+
+[[ssh-keys]]
+item = "SSH Key - Ed25519 Work"
+vault = "Personal"
+
+[[ssh-keys]]
+item = "SSH Key - Work"
+vault = "Personal"

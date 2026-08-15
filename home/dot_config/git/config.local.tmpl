@@ -1,0 +1,28 @@
+{{- if and .work .workOrgs -}}
+# Work account routing, from the answers to `chezmoi init`. Included by
+# ~/.config/git/config, which git parses in order — this file only rewrites
+# remotes and points at config.work; the identity itself is in config.work.
+#
+# Renders empty on a personal machine, and chezmoi removes a target that
+# renders empty, so the include in the tracked config finds nothing and git
+# ignores it silently.
+#
+# `github-work` is a host alias defined in ~/.ssh/config, where it pins the
+# work 1Password key. Changing it here means changing it there.
+{{ range $org := splitList "," .workOrgs }}
+{{- $org = trim $org }}
+{{- if $org }}
+[url "git@github-work:{{ $org }}/"]
+    insteadOf = git@github.com:{{ $org }}/
+    insteadOf = ssh://git@github.com/{{ $org }}/
+
+# Both spellings, because hasconfig matches the URL as *stored* in the repo,
+# before the rewrite above is applied. The `**` is only wildcard-magic directly
+# after a `/`.
+[includeIf "hasconfig:remote.*.url:git@github.com:{{ $org }}/**"]
+    path = config.work
+[includeIf "hasconfig:remote.*.url:ssh://git@github.com/{{ $org }}/**"]
+    path = config.work
+{{ end }}
+{{- end }}
+{{- end -}}

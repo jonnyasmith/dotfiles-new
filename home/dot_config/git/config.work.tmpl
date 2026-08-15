@@ -1,0 +1,12 @@
+{{- if and .work .workEmail -}}
+# The work identity, from the answers to `chezmoi init`. Nothing else: the name
+# in ~/.config/git/config is right for both accounts, and only the address
+# changes.
+#
+# Pulled in by the [includeIf] blocks in config.local (GitHub) and in the
+# tracked config (Azure DevOps). Renders empty on a personal machine, and
+# chezmoi removes a target that renders empty, so those includes then find
+# nothing and git ignores them.
+[user]
+    email = {{ .workEmail }}
+{{ end -}}

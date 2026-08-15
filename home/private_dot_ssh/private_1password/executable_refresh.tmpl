@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Regenerate the public-key stubs ~/.ssh/config pins per host.
+#
+# The private halves never leave 1Password. ssh still needs a local file to say
+# *which* agent key to use for a host, and that is all a stub is — it matches
+# on the key blob, not the comment, so the comments are generic.
+set -euo pipefail
+
+{{ if eq .family "darwin" -}}
+export SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+{{- else -}}
+export SSH_AUTH_SOCK="$HOME/.1password/agent.sock"
+{{- end }}
+
+# Written into the chezmoi source directory, not straight into ~. A rotated key
+# is a change to the desired state, so it belongs in a commit; `chezmoi apply`
+# is what puts it in ~/.ssh/1password, which the private_ attribute makes 0700.
+# Nothing here chmods anything, unlike the old setup: git tracks only the
+# executable bit, so a checkout under Debian's 002 umask left these stubs
+# group-writable and ssh ignored them. chezmoi writes the mode itself.
+dir="$(chezmoi source-path ~/.ssh/1password)"
+
+# The work items are titled "... Work" rather than after the employer, so this
+# public repo names no client. These strings are also what
+# ~/.config/1Password/ssh/agent.toml lists: rename an item in the vault and
+# both files need the new title. An unmapped key is reported and skipped.
+map() {
+  case "$1" in
+    "SSH Key - Ed25519")      echo github-personal ;;
+    "SSH Key - Ed25519 Work") echo github-work ;;
+    "SSH Key - Work")         echo azure-work ;;
+    *)                        echo "" ;;
+  esac
+}
+
+[[ -S $SSH_AUTH_SOCK ]] || {
+  echo "1Password agent socket not found; is 1Password running with the SSH agent enabled?" >&2
+  exit 1
+}
+
+found=0
+while read -r type key comment; do
+  [[ -n ${type:-} ]] || continue
+  name=$(map "$comment")
+  if [[ -z $name ]]; then
+    echo "skip: unmapped 1Password key '$comment' (add it to map() above)" >&2
+    continue
+  fi
+  printf '%s %s %s\n' "$type" "$key" "$comment" > "$dir/$name.pub"
+  echo "wrote $dir/$name.pub  <- $comment"
+  found=$((found + 1))
+done < <(ssh-add -L)
+
+[[ $found -gt 0 ]] || { echo "no keys returned by the agent" >&2; exit 1; }
+
+echo
+echo "review with 'chezmoi diff', then 'chezmoi apply' and commit in $(chezmoi source-path)"
