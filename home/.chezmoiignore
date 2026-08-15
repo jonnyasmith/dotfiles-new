@@ -9,6 +9,16 @@
 # A bash script, and the one thing here with no Windows equivalent. The stubs
 # and ~/.ssh/config it maintains are still applied.
 .ssh/1password/refresh
+
+# The ~/dev checkouts these point at live in the WSL guest, not on the host, so
+# every one of these would be a dangling link — and creating a symlink at all
+# on Windows needs Developer Mode or an elevated shell. .chezmoiexternal.toml
+# renders empty here for the same reason.
+.agents
+.claude/CLAUDE.md
+.claude/skills
+.local/bin/wt
+.local/bin/worktree
 {{ end -}}
 
 {{ if .isWSL -}}

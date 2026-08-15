@@ -1,0 +1,49 @@
+{{- if ne .family "windows" -}}
+#!/bin/sh
+# Point every personal checkout at SSH, once the 1Password agent answers.
+#
+# The clones are made over HTTPS so a fresh machine needs no key. SSH only
+# starts working after this repo has written ~/.ssh/config and somebody has
+# signed into 1Password and enabled its agent — which is usually a later apply
+# than the one that cloned them.
+#
+# So this is the one script here with no `once_` or `onchange_`: it has to keep
+# retrying until the agent exists. It costs nothing in the steady state, because
+# the check below is local and exits before any network is touched. Once every
+# origin is SSH this script does exactly one loop over three strings.
+
+set -u
+
+repos="{{ .chezmoi.workingTree }} $HOME/dev/skills $HOME/dev/worktree-cli"
+
+pending=''
+for repo in $repos; do
+    [ -d "$repo/.git" ] || continue
+    case "$(git -C "$repo" remote get-url origin 2>/dev/null || echo '')" in
+        https://github.com/*) pending="$pending $repo" ;;
+    esac
+done
+
+[ -n "$pending" ] || exit 0
+
+# Probed with whatever git will actually use. Under WSL that is the Windows
+# ssh.exe that git's config points core.sshCommand at, and a native `ssh` here
+# would find no agent at all, so nothing would ever be switched.
+git_ssh="$(git config --get core.sshCommand 2>/dev/null || true)"
+# Deliberately unquoted — the value may carry flags.
+# shellcheck disable=SC2086
+if ! ${git_ssh:-ssh} -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+        -T git@github.com 2>&1 | grep -q 'successfully authenticated'; then
+    echo "  . github over ssh is not answering yet — sign in to 1Password, enable its SSH agent, and re-run 'chezmoi apply' to switch these to ssh:$pending"
+    exit 0
+fi
+
+for repo in $pending; do
+    url="$(git -C "$repo" remote get-url origin)"
+    if git -C "$repo" remote set-url origin "git@github.com:${url#https://github.com/}"; then
+        echo "  + ${repo##*/}: origin switched to ssh"
+    else
+        echo "  ! ${repo##*/}: could not rewrite origin" >&2
+    fi
+done
+{{ end -}}

@@ -1,0 +1,34 @@
+{{- if ne .family "windows" -}}
+#!/bin/sh
+# Clone the personal checkouts under ~/dev that the rest of $HOME points at.
+#
+# Not externals in .chezmoiexternal.toml, unlike the vendor trees there: these
+# are repos with commits in them, and an external would `git pull` over a dirty
+# tree on a schedule. Cloned once, then owned by hand.
+#
+# `run_once_`, so a machine that already has them does nothing. chezmoi keys
+# that on this script's contents, so adding a repo below re-runs it — and each
+# clone is skipped if the directory is already there.
+
+set -eu
+
+# HTTPS, because a fresh machine has no working key yet: 1Password is installed
+# by the package script but nobody has signed into it. 31-dev-remotes flips
+# these to SSH on a later apply, once the agent answers.
+repos='
+jonnyasmith/skills
+jonnyasmith/worktree-cli
+'
+
+mkdir -p "$HOME/dev"
+
+for slug in $repos; do
+    dir="$HOME/dev/${slug#*/}"
+    if [ -d "$dir" ]; then
+        echo "  . ${slug#*/} already cloned"
+        continue
+    fi
+    echo "  + ${slug#*/}"
+    git clone "https://github.com/$slug.git" "$dir"
+done
+{{ end -}}

@@ -36,6 +36,7 @@ home/                     the chezmoi source directory
   .chezmoi.toml.tmpl      machine detection, rendered at `chezmoi init`
   .chezmoiignore          targets chezmoi must not manage
   .chezmoidata/           declarative lists the scripts render in
+  .chezmoiexternal.toml   third-party trees chezmoi clones and refreshes
   .chezmoiscripts/        scripts that run but are never written to $HOME
   dot_zshenv              -> ~/.zshenv
   dot_config/…            -> ~/.config/…
@@ -132,6 +133,45 @@ need it, and a failed lookup aborts the whole apply. `op` is installed for
 Under WSL there is no local agent at all: git is pointed at the Windows
 `ssh.exe`, which reaches the host's 1Password over a named pipe.
 
+## Checkouts
+
+Two kinds of git repository land in `$HOME`, and they are handled differently
+because one is read and the other is written.
+
+**Vendor trees** — oh-my-zsh, its two plugins, and tpm — are externals in
+`.chezmoiexternal.toml`. chezmoi clones them shallow, pulls them `--ff-only`
+once a week, and nothing here ever edits them. The plugin clones sit inside
+`~/.oh-my-zsh/custom/`, which oh-my-zsh's own `.gitignore` excludes, so its pull
+never sees them. oh-my-zsh's installer is not used: its other two jobs are
+`chsh` and writing a default `.zshrc` this repo would overwrite.
+
+**Personal checkouts** under `~/dev` are cloned by a `run_once_` script instead.
+An external would `git pull` over a dirty tree on a timer; these have commits in
+them, so they are cloned once and then owned by hand.
+
+They are cloned over HTTPS, because a fresh machine has no working key —
+1Password is installed by the package script, but nobody has signed into it yet.
+`31-dev-remotes` switches those origins to SSH, and it is the one script here
+with neither `once_` nor `onchange_`: it has to keep retrying on later applies
+until the agent answers. It costs nothing once done, because it reads the origin
+URLs first and exits before touching the network.
+
+What the checkouts wire into `$HOME` is declarative rather than scripted:
+
+| Link | Target |
+| --- | --- |
+| `~/.agents/AGENTS.md`, `~/.claude/CLAUDE.md` | `~/dev/skills/AGENTS.md` |
+| `~/.agents/skills`, `~/.claude/skills` | `~/dev/skills/skills` |
+| `~/.local/bin/wt`, `~/.local/bin/worktree` | `~/dev/worktree-cli/dist/cli.js` |
+
+These are `symlink_` entries, so `chezmoi diff` shows them and `chezmoi apply`
+repairs them. They dangle harmlessly until the checkout exists. Only the
+worktree-cli *build* needs a script, and it reports rather than fails: a broken
+build must not take an apply down with it.
+
+Windows gets none of this. It has no zsh and no tmux, the `~/dev` checkouts live
+in the WSL guest, and creating a symlink there needs Developer Mode.
+
 ## Work identity
 
 `chezmoi init` asks whether this is a work machine and, if so, for the work
@@ -157,7 +197,7 @@ Built so far:
 - [x] packages
 - [x] mise toolchains
 - [x] secrets — 1Password SSH agent, ssh config, work identity
-- [ ] externals — oh-my-zsh, tpm, `~/dev` checkouts
+- [x] externals — oh-my-zsh, tpm, `~/dev` checkouts
 - [ ] remaining app configs — nvim, tmux, gh, btop, htop, claude, codex, omp
 - [ ] OS and desktop settings — macOS defaults, GNOME dconf, COSMIC
 - [ ] Debian, WSL, Fedora, Windows

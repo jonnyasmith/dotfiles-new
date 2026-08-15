@@ -1,0 +1,38 @@
+{{- if ne .family "windows" -}}
+#!/bin/sh
+# Build the worktree CLI that ~/.local/bin/wt and ~/.local/bin/worktree point at.
+#
+# `after` and numbered past 20-mise, because the build needs the pnpm that
+# script installs. `run_once_`, because this is bootstrap: a `git pull` in the
+# checkout afterwards is followed by a build in the checkout, not by an apply.
+#
+# Reports and exits 0 on every failure. A missing checkout or a broken build
+# must not take the rest of an apply down with it — the two symlinks are still
+# correct, they just dangle until this succeeds.
+
+set -u
+
+repo="$HOME/dev/worktree-cli"
+[ -d "$repo" ] || { echo "  . worktree-cli not cloned, skipped"; exit 0; }
+
+# mise's shims land here, and this script's own shell predates the .zshenv that
+# would put them on PATH.
+PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
+export PATH
+
+command -v pnpm >/dev/null 2>&1 || {
+    echo "  ! pnpm is missing — run 'mise install' and re-run this build" >&2
+    exit 0
+}
+
+if ! (cd "$repo" && pnpm install --frozen-lockfile && pnpm run build); then
+    echo "  ! worktree-cli build failed" >&2
+    exit 0
+fi
+
+# tsc does not carry the executable bit onto its output, and both names are run
+# straight off PATH: the zsh wrapper dot_zshrc sources shadows `wt` with a
+# function calling `command wt`, and its wtc/wtr/wtl aliases call `worktree`.
+chmod +x "$repo/dist/cli.js"
+echo "  . worktree-cli built"
+{{ end -}}

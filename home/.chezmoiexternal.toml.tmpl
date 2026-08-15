@@ -1,0 +1,62 @@
+{{- if ne .family "windows" -}}
+# Third-party checkouts chezmoi clones and keeps current. Paths are relative to
+# $HOME.
+#
+# These are vendor trees, not config: nothing here is edited locally, so a
+# weekly `git pull` is safe and the alternative — a submodule, or a copy of
+# someone else's repo committed into this one — is worse. Everything the repo
+# *does* own about them lives elsewhere: the plugin list in dot_zshrc, the
+# TMUX_PLUGIN_MANAGER_PATH in tmux.conf.
+#
+# `--depth=1`: none of the history is ever read, and oh-my-zsh's is large.
+# A shallow clone still pulls, so refreshPeriod works as normal.
+#
+# Windows renders this file empty. It has no zsh and no tmux, and the two
+# personal checkouts below live in the WSL guest.
+
+# The upstream installer is not used. Its other two jobs are `chsh` — which
+# belongs with the rest of the user setup — and writing a default .zshrc, which
+# this repo would immediately overwrite.
+[".oh-my-zsh"]
+    type = "git-repo"
+    url = "https://github.com/ohmyzsh/ohmyzsh.git"
+    refreshPeriod = "168h"
+[".oh-my-zsh".clone]
+    args = ["--depth=1"]
+[".oh-my-zsh".pull]
+    args = ["--ff-only"]
+
+# Nested inside the clone above, which is safe: oh-my-zsh's own .gitignore
+# ignores custom/ entirely, so its `git pull` never sees these. Keep the list in
+# sync with plugins=() in dot_zshrc.
+[".oh-my-zsh/custom/plugins/zsh-autosuggestions"]
+    type = "git-repo"
+    url = "https://github.com/zsh-users/zsh-autosuggestions.git"
+    refreshPeriod = "168h"
+[".oh-my-zsh/custom/plugins/zsh-autosuggestions".clone]
+    args = ["--depth=1"]
+[".oh-my-zsh/custom/plugins/zsh-autosuggestions".pull]
+    args = ["--ff-only"]
+
+[".oh-my-zsh/custom/plugins/fast-syntax-highlighting"]
+    type = "git-repo"
+    url = "https://github.com/zdharma-continuum/fast-syntax-highlighting.git"
+    refreshPeriod = "168h"
+[".oh-my-zsh/custom/plugins/fast-syntax-highlighting".clone]
+    args = ["--depth=1"]
+[".oh-my-zsh/custom/plugins/fast-syntax-highlighting".pull]
+    args = ["--ff-only"]
+
+# Deliberately not under ~/.config/tmux, which this repo manages: tpm writes
+# its fetched plugins as siblings of itself, and they are machine state, not
+# config. tmux.conf sets TMUX_PLUGIN_MANAGER_PATH to match. Fetching those
+# plugins is still a one-off `prefix + I` inside tmux.
+[".local/share/tmux/plugins/tpm"]
+    type = "git-repo"
+    url = "https://github.com/tmux-plugins/tpm.git"
+    refreshPeriod = "168h"
+[".local/share/tmux/plugins/tpm".clone]
+    args = ["--depth=1"]
+[".local/share/tmux/plugins/tpm".pull]
+    args = ["--ff-only"]
+{{ end -}}
