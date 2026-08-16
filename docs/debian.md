@@ -59,11 +59,26 @@ a successful silent run — the installer's own `installed bin/chezmoi` is the l
 thing either prints. Run as its own command, `chezmoi init` is visible, has an
 exit code you can read, and can be re-run without re-downloading anything.
 
-The repository is named in full for a reason. A bare `chezmoi init jonnyasmith`
-expands to `github.com/jonnyasmith/dotfiles` — the *old* repo, which has no
-`.chezmoiroot` and no `.chezmoiscripts`. It clones and applies without
-complaining, installs nothing, and leaves you with a machine that has no zsh and
-an apply that appeared to do nothing at all.
+The repository is named in full for a reason. `chezmoi init <name>` is not a
+lookup of any kind — it is a string substitution into
+`https://github.com/<name>/dotfiles.git`. So a bare `chezmoi init jonnyasmith`
+asks for `jonnyasmith/dotfiles`: the *old* repo, which has no `.chezmoiroot` and
+no `.chezmoiscripts`. It clones and applies without complaining, installs
+nothing, and leaves a machine with no zsh and an apply that appeared to do
+nothing at all. `jonnyasmith/dotfiles-new` is the `<owner>/<repo>` form, and it
+is the whole difference between this runbook working and silently doing nothing.
+
+`init` is also not how you change your mind. Once `~/.local/share/chezmoi`
+exists, it is the source directory; a later `init` naming a different repository
+pulls what is already there. Repointing it means deleting it first:
+
+```shell
+rm -rf ~/.local/share/chezmoi ~/.config/chezmoi
+chezmoi init --apply --verbose jonnyasmith/dotfiles-new
+```
+
+`~/.config/chezmoi` goes too: it holds the answers to the work-machine prompt,
+and `promptBoolOnce` reuses them rather than asking again.
 
 `--verbose` is what makes the apply narrate. Without it chezmoi prints only the
 scripts' own output, so a run with nothing left to do prints nothing at all and
