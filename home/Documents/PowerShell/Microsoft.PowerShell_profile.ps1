@@ -82,9 +82,8 @@ Set-Alias -Name h   -Value Get-History
 
 function lg { lazygit @args }
 function k  { kubectl @args }
-function d  { docker @args }
-# zsh has `dc=docker-compose`; compose v1 is gone, so this is the v2 subcommand.
-function dc { docker compose @args }
+# No `d`/`dc` as zsh has: this host runs no Docker, so containers are a WSL
+# shell's job — docs/wsl.md.
 
 # The single letters are git aliases from home/.config/git/config (a = add
 # -A, cm = commit -m, f = fetch --prune, ...).

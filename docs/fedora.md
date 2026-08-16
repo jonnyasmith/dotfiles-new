@@ -152,7 +152,18 @@ fc-cache -fv
 Set the terminal font to **FiraCode Nerd Font Mono** afterwards — a GUI step in
 kitty's config or the terminal's preferences.
 
-## 8. Do not reintroduce
+## 8. Portainer
+
+`39-portainer` writes `/opt/portainer/docker-compose.yml` — sudo, because it is
+outside `$HOME` — and runs `docker compose up -d`. Its gate is `docker info`,
+which also answers the group question: until the re-login in section 6 has
+happened this account cannot read the socket, so the script prints a `.` line
+and defers, and the container arrives on the first apply after that.
+
+Portainer's first-run admin account is created at <http://localhost:9000> and
+the window times out if you leave it; `docker restart portainer` reopens it.
+
+## 9. Do not reintroduce
 
 Each of these was in an older Fedora runbook and is now covered elsewhere.
 

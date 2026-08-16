@@ -171,5 +171,5 @@ dropdown once it is installed.
 | `npm i prettier -g` | a per-project dev dependency, not a machine-global tool |
 | `Microsoft.DotNet.SDK.6`, `.7`, `.8` | mise installs the SDKs side by side |
 | `Neovim.Neovim`, `Starship.Starship`, `junegunn.fzf`, `zig.zig` | all in mise's registry, so they are `[tools]` and identical on every OS |
-| `Docker.DockerDesktop` | deliberately absent; `RedHat.Podman-Desktop` stays |
+| `Docker.DockerDesktop`, `RedHat.Podman-Desktop` | this host runs no containers of its own — Docker is a WSL guest's job, and Portainer's UI comes with it ([wsl.md](wsl.md)) |
 | A `curl \| iex` font installer | section 6 does it from winget |

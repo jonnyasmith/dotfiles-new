@@ -112,28 +112,20 @@ docker run --rm hello-world
 
 ## 5. Portainer
 
-Optional.
+`39-portainer` writes `/opt/portainer/docker-compose.yml` and brings the
+container up, so there is nothing to do here by hand. It runs on every apply
+and defers itself with a `.` line whenever `docker info` fails — which is the
+case until the group re-login above has happened and the daemon is started, so
+the container appears on the first apply after that, not before.
 
-```bash
-sudo mkdir /opt/portainer
-sudo tee /opt/portainer/docker-compose.yml > /dev/null <<EOF
-services:
-  portainer:
-    image: portainer/portainer-ce
-    container_name: portainer
-    restart: always
-    ports:
-      - "9000:9000"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-      - "/opt/portainer/data:/data"
-EOF
-cd /opt/portainer && sudo docker compose up -d && cd
-```
+The compose file is outside `$HOME`, so writing it needs sudo; it is compared
+before it is written, and `docker compose up -d` runs only when it changed or
+nothing is up under the name `portainer`.
 
 Portainer's first-run admin account is created in the browser at
-<http://localhost:9000> and times out if you wait too long after the container
-starts; if you miss the window, `docker restart portainer`.
+<http://localhost:9000> — reachable from Windows too, WSL forwards localhost —
+and times out if you wait too long after the container starts; if you miss the
+window, `docker restart portainer`.
 
 ## 6. Reaching the Windows 1Password SSH agent from WSL
 

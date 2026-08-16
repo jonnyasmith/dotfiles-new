@@ -104,7 +104,20 @@ PAM only reads the new shell at the next login.
 | Login shell → zsh | PAM reads `chsh` at login |
 | Kernel / firmware / `raspi-config` | Reboot |
 
-## 7. Do not reintroduce
+## 7. Portainer
+
+`39-portainer` writes `/opt/portainer/docker-compose.yml` and runs
+`docker compose up -d`. It writes with sudo regardless of the chown in section
+4, since `/opt` is user-owned on this box only. Its gate is `docker info`, which
+also answers the group question above: before the re-login this account cannot
+read the socket, so the script prints a `.` line and defers, and the container
+arrives on the first apply after that.
+
+Portainer's first-run admin account is created at <http://localhost:9000> — from
+another machine on the LAN, port 9000 on this host's address — and the window
+times out if you leave it; `docker restart portainer` reopens it.
+
+## 8. Do not reintroduce
 
 - `ln -sf /home/jonny/.dotfiles/raspberry-pi/dotfiles/...` symlinks — chezmoi
   writes `$HOME` with no hardcoded username and no per-platform dotfile copies.
