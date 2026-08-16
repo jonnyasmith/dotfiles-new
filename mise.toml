@@ -3,8 +3,8 @@
 # to pin the versions the checks need and give them names.
 #
 # The tools below are the ones a check shells out to. python3 is deliberately
-# absent: the check scripts are stdlib-only so CI can run them with whatever
-# python the runner already has.
+# absent: the check scripts are stdlib-only, so they run on a bare container or
+# a half-installed machine with whatever python is already there.
 
 [tools]
 chezmoi = "2.72.0"

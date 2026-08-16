@@ -76,7 +76,10 @@
     whitespace = nowarn
 [core]
   pager = less -FXRS -x2
-  editor = vim
+  # core.editor outranks $EDITOR, so this had to change too — as `vim` it was
+  # the one caller that ignored the pair .zshenv exports. A bare name, like
+  # ~/.local/bin/vi uses: PATH picks the mise-owned nvim.
+  editor = nvim
   sshCommand = ssh
 [rerere]
     enabled = true

@@ -2,7 +2,7 @@
 # Every check, in one render.
 #
 # The list lives here rather than in mise's `depends`, so the render is paid for
-# once and each check still runs even after an earlier one fails — one CI run
+# once and each check still runs even after an earlier one fails — one run
 # should report every problem, not the first.
 set -uo pipefail
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Parse the rendered PowerShell with PowerShell's own parser.
 #
-# Split from check:shell because pwsh is not on a Linux CI runner by default and
-# a missing parser must read as "skipped", never as "clean".
+# Split from check:shell because pwsh is on none of the Linux machines this runs
+# on, and a missing parser must read as "skipped", never as "clean".
 set -uo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"

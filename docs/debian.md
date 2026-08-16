@@ -32,12 +32,59 @@ clone it then does.
 
 ## 3. Bootstrap
 
+Install the binary first, on its own:
+
 ```shell
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply jonnyasmith
-exec zsh
+sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+export PATH="$HOME/.local/bin:$PATH"
+chezmoi --version
 ```
 
-That clones over **HTTPS**, which is not a fallback but the only thing that can
+Two things there are deliberate. `-b` overrides the installer's default of
+`./bin`, which is a *relative* path — it lands wherever you happened to be
+standing, and on a machine that has never had a `~/bin` it is on no `PATH` at
+all, so every `chezmoi` line in this runbook answers `command not found`.
+`~/.local/bin` is the directory `.zshenv` puts on `PATH` permanently; the
+`export` is only to reach it from this bash session, before zsh exists.
+
+Then the run itself:
+
+```shell
+chezmoi init --apply --verbose jonnyasmith/dotfiles-new
+```
+
+Not the installer's `-- init --apply` form. That works by `exec`ing chezmoi from
+inside the install script, which means a failure to launch it looks identical to
+a successful silent run — the installer's own `installed bin/chezmoi` is the last
+thing either prints. Run as its own command, `chezmoi init` is visible, has an
+exit code you can read, and can be re-run without re-downloading anything.
+
+The repository is named in full for a reason. `chezmoi init <name>` is not a
+lookup of any kind — it is a string substitution into
+`https://github.com/<name>/dotfiles.git`. So a bare `chezmoi init jonnyasmith`
+asks for `jonnyasmith/dotfiles`: the *old* repo, which has no `.chezmoiroot` and
+no `.chezmoiscripts`. It clones and applies without complaining, installs
+nothing, and leaves a machine with no zsh and an apply that appeared to do
+nothing at all. `jonnyasmith/dotfiles-new` is the `<owner>/<repo>` form, and it
+is the whole difference between this runbook working and silently doing nothing.
+
+`init` is also not how you change your mind. Once `~/.local/share/chezmoi`
+exists, it is the source directory; a later `init` naming a different repository
+pulls what is already there. Repointing it means deleting it first:
+
+```shell
+rm -rf ~/.local/share/chezmoi ~/.config/chezmoi
+chezmoi init --apply --verbose jonnyasmith/dotfiles-new
+```
+
+`~/.config/chezmoi` goes too: it holds the answers to the work-machine prompt,
+and `promptBoolOnce` reuses them rather than asking again.
+
+`--verbose` is what makes the apply narrate. Without it chezmoi prints only the
+scripts' own output, so a run with nothing left to do prints nothing at all and
+reads as a hang or a no-op.
+
+It clones over **HTTPS**, which is not a fallback but the only thing that can
 work: SSH to GitHub needs the `IdentityAgent` line pointing ssh at 1Password's
 socket, and that line is in this repo. Switching the remote to SSH is not a step
 either — `31-dev-remotes` does it on the next apply, once 1Password is signed in
@@ -49,8 +96,34 @@ The run asks one question, whether this is a work machine, and then adds the
 in `packages.debian`, the mise `[tools]`, the dotfiles and the GNOME dconf, sets
 zsh as the login shell, and puts you in the `docker` group.
 
-The desktop apps — 1Password, Chrome, VS Code, VLC — are the `desktop` list
-rather than `core`, which is how WSL skips the lot (see [wsl.md](wsl.md)).
+Wait for it to finish. The last lines it prints include
+
+```
+  + login shell: /usr/bin/zsh (takes effect at the next login)
+```
+
+and only then is there a zsh to start:
+
+```shell
+exec zsh
+```
+
+If the apply stopped early instead, zsh is not installed yet and `exec zsh`
+answers `not found` — that is the symptom, not the fault. Scroll back to the
+first error. Re-running `chezmoi apply --verbose` is safe and is usually the
+whole fix: every step is guarded, so an apply picks up where the last one
+stopped.
+
+`packages.debian` is three lists, and only the first is all-or-nothing:
+
+| List | On failure |
+| --- | --- |
+| `core` | fatal — these are Debian's own packages, and one that will not resolve means a broken machine |
+| `docker` | skipped with a `!` line if the Docker apt source is missing; `36-linux-services` then skips too |
+| `desktop` | 1Password, Chrome, VS Code, VLC — installed one at a time, each survivable |
+
+`core` carries zsh, which is why the other two are kept out of it. The `desktop`
+list is also the one WSL skips wholesale (see [wsl.md](wsl.md)).
 
 `chezmoi apply --dry-run -v` shows what a run would do; `chezmoi status` shows
 what is out of sync. It is idempotent — re-run it any time.

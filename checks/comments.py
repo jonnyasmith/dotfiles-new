@@ -27,7 +27,7 @@ WAIVER = "comment-budget-skip:"
 BY_NAME = {
     ".chezmoiignore": "#", ".chezmoiroot": "#", ".gitignore": "#",
     ".zprofile": "#", ".zshenv": "#", ".zshrc": "#", "config": "#",
-    "htoprc": "#", "ignore": "#",
+    "htoprc": "#", "ignore": "#", "vi": "#",
 }
 BY_EXT = {
     ".conf": "#", ".dconf": "#", ".ps1": "#", ".py": "#", ".sh": "#",

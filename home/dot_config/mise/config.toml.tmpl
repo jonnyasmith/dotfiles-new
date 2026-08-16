@@ -106,10 +106,10 @@ shellcheck = "latest"
 starship = "latest"
 terraform = "latest"
 tmux = "latest"
-# nvim's :checkhealth python3 provider. Linux takes it from its distro package
-# list; brew has no formula and the registry no entry, so macOS goes through
-# pipx. Scoped, or every Linux box would install it twice.
-"pipx:pynvim" = { version = "latest", os = ["macos"] }
+# pynvim is deliberately absent. nvim's python3 provider looks for the `neovim`
+# module in the `python3` on PATH — mise's — and a pipx or distro install puts
+# it in a venv that python cannot see, so every spelling of it was a package
+# that satisfied nothing. Nothing in dot_config/nvim uses a python rplugin.
 # usage-spec completion scripts shell out to this at completion time; without
 # it, tab-completing `mise ` prints an error.
 usage = "latest"

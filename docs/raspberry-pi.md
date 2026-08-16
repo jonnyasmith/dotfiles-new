@@ -30,9 +30,18 @@ also require a reboot.
 ## 3. Bootstrap
 
 ```bash
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply jonnyasmith
+sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+export PATH="$HOME/.local/bin:$PATH"
+chezmoi init --apply --verbose jonnyasmith/dotfiles-new
 exec zsh
 ```
+
+`-b` keeps the binary out of the installer's default `./bin`, which is relative
+and on no `PATH`, and `~/.local/bin` is what `.zshenv` exports. `chezmoi init` is
+its own command rather than the installer's `-- init --apply`: run through the
+installer it is `exec`ed out of sight, so a failure to launch looks the same as a
+silent success. `--verbose` makes the apply narrate. See
+[debian.md](debian.md#3-bootstrap).
 
 Run it **without** `sudo`. The old runbook's `sudo bash ./install.sh` wrote
 root-owned files into `/home/jonny`, which is why several dotfiles ended up
@@ -45,8 +54,9 @@ case the remotes stay on HTTPS and the script says so on every apply.
 
 Docker is not a manual step any more either. `05-repos-debian` adds the Docker
 CE repo with `arch=$(dpkg --print-architecture)`, so it resolves `arm64` here;
-the packages are in `packages.debian.core`; and `36-linux-services` adds you to
-the `docker` group and enables the service.
+the packages are `packages.debian.docker`, installed as their own batch once
+that source exists; and `36-linux-services` adds you to the `docker` group and
+enables the service.
 
 ### The desktop apps will fail, and that is expected
 

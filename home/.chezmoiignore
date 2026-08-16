@@ -19,6 +19,12 @@
 .claude/skills
 .local/bin/wt
 .local/bin/worktree
+
+# A POSIX `sh` wrapper and two symlinks to it. Nothing on Windows falls back to
+# `vi`, and $EDITOR there is set by the PowerShell profile.
+.local/bin/vi
+.local/bin/vim
+.local/bin/editor
 {{ end -}}
 
 {{ if ne .family "darwin" -}}
