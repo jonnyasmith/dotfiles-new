@@ -7,8 +7,6 @@ else # OS X `ls`
     colorflag="-G"
 fi
 
-alias vim="nvim"
-
 # bat detects a non-tty and emits plain undecorated text, so `cat file | …`
 # and `$(cat file)` are unchanged; `command cat` bypasses. Guarded because a
 # shell started before `mise bootstrap` has no bat and must not lose cat.

@@ -120,6 +120,16 @@ toolchain is added.
 to exact versions per machine, and every `mise install` rewrites it. Two
 machines upgraded on different days differ by a patch; that is not drift.
 
+Neovim is one of those tools, which makes the editor a place where mise and the
+distro can both claim the same binary. `.zshenv` exports `EDITOR` and `VISUAL`
+(the PowerShell profile sets the same pair), and `~/.local/bin` carries a `vi`
+wrapper with `vim` and `editor` symlinked to it, so the fallbacks resolve to the
+same nvim as the `$EDITOR` path does. All four spellings run `nvim` unqualified
+and let `PATH` pick, because mise moves the install directory on every upgrade.
+No package list may install neovim: apt's shipped three minor versions behind
+what `dot_config/nvim` requires, and while it was installed it owned the `vi`
+and `vim` alternatives.
+
 ## Machine facts
 
 `.chezmoi.toml.tmpl` resolves the machine once at `chezmoi init` and writes the

@@ -12,6 +12,14 @@
 # `parity-skip:` marks a package deliberately absent from another Linux family,
 # so a parity check cannot mistake the gap for an oversight.
 #
+# Neovim is a [tools] entry, and no list here may pull a second copy in. The
+# provider packages (Debian's python3-pynvim, Fedora's python3-neovim, Arch's
+# python-pynvim) used to sit in `core` for nvim's `:checkhealth`, and did two
+# wrong things: they never satisfied it — nvim looks for the `neovim` module in
+# the pythons on PATH, which are mise's, not the distro's — and apt's carries
+# `Recommends: neovim`, so every Debian box also got Debian's nvim, three minor
+# versions behind and the owner of the `vi`/`vim` alternatives.
+#
 # `desktop` lists are skipped under WSL: each entry duplicates an app on the
 # Windows host, and a second copy inside the guest cannot reach the display,
 # the SSH agent, or the host's file associations.
@@ -83,7 +91,6 @@ core = [
     "htop",
     "kitty",
     "nala",                      # the apt front-end used throughout docs/debian.md
-    "python3-pynvim",            # nvim's :checkhealth python3 provider. python3-neovim is a transitional dummy, absent from current Debian
     "socat",                     # 1Password SSH-agent relay under WSL
     "ttf-mscorefonts-installer", # contrib; EULA pre-seeded by the repo script, or apt blocks on a debconf dialog
     "tree",                      # registry-skip: see the macOS entry
@@ -132,7 +139,6 @@ core = [
     "git",
     "htop",
     "kitty",
-    "python3-neovim",        # the :checkhealth python3 provider; Fedora keeps the old source name
     "tree",                  # registry-skip: see the macOS entry
     "unzip",
     "wget",
@@ -169,7 +175,6 @@ core = [
     "nano",
     "net-tools",
     "powertop",
-    "python-pynvim",       # the :checkhealth python3 provider
     "rsync",
     "stress",              # required by the thermal verification in docs/arch.md
     "tlp",

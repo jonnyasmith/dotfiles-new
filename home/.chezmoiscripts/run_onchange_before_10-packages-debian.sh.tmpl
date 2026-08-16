@@ -17,6 +17,17 @@ sudo apt-get install -y \
 {{ range $i, $p := .packages.debian.core }}{{ if $i }} \
 {{ end }}    {{ $p }}{{ end }}
 
+# Debian's own neovim, if an earlier apply pulled it in as a Recommends of
+# python3-pynvim (see the note in .chezmoidata/packages.toml). It is three minor
+# versions behind what dot_config/nvim requires, and while installed it owns the
+# `vi` and `vim` alternatives — so `git commit` on a machine with no $EDITOR
+# opened it, against this repo's config, and it refused to start. Removing the
+# package hands the alternatives back; ~/.local/bin/vi then answers instead.
+if dpkg -s neovim >/dev/null 2>&1; then
+    sudo apt-get remove -y neovim
+    echo "  - neovim (apt; mise owns it)"
+fi
+
 # Docker is its own batch, guarded on the source 05-repos-debian is allowed to
 # skip. Inside the batch above, five unresolvable packages would take zsh —
 # installed by that same batch, and what the bootstrap tells you to `exec` —

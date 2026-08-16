@@ -9,6 +9,12 @@
 # ~\.config tree chezmoi applies the one that gets read.
 $env:XDG_CONFIG_HOME = Join-Path $env:USERPROFILE '.config'
 
+# Same pair .zshenv exports, for the same reason: git and chezmoi shell out to
+# an editor and fall back to `vi` when these are unset — a name Windows cannot
+# resolve at all. mise owns this nvim, as it does everywhere else.
+$env:EDITOR = 'nvim'
+$env:VISUAL = 'nvim'
+
 # ------------------------------------------------------------------ helpers --
 function Import-IfAvailable {
     param([Parameter(Mandatory)][string]$Name)

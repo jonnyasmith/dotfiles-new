@@ -29,3 +29,12 @@ mise-shims-last() {
 	export PATH
 }
 mise-shims-first
+
+# Set here rather than in .zshrc because the tools that read these are usually
+# spawned by something that is not an interactive shell — `git commit`,
+# `chezmoi edit`, `crontab -e`. Unset, they each fall back to `vi`, which on a
+# Debian box is whatever owns the alternative, and that was apt's nvim reading
+# this repo's AstroNvim config with a version it cannot run. Bare name, not a
+# path: it resolves through the shims above to the mise-owned nvim.
+export EDITOR=nvim
+export VISUAL=nvim

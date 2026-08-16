@@ -1,0 +1,18 @@
+#!/bin/sh
+# The `vi` pointer, with `vim` and `editor` symlinked to it — the three names
+# anything from `git commit` to `crontab -e` falls back to when $EDITOR is
+# unset. A wrapper rather than a symlink into ~/.local/share/mise/shims on
+# purpose: a mise shim is a symlink to the mise binary and dispatches on its own
+# name, so a shim called `vi` would send mise looking for a tool called vi.
+#
+# The shims directory is named here rather than assumed, because the callers
+# that reach these three names are the ones least likely to have inherited a
+# shell's PATH — cron, systemd units, GUI launchers — and a bare `nvim` in a
+# PATH of /usr/bin:/bin finds the distro's nvim or nothing. Prepended, so it
+# also wins over a distro package that gets pulled back in as someone's
+# dependency. The shim is a name, not a version: mise moves the install
+# directory on every neovim upgrade, and nothing here has to know that.
+PATH="${HOME:-~}/.local/share/mise/shims:$PATH"
+export PATH
+
+exec nvim "$@"
