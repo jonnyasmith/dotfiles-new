@@ -50,7 +50,7 @@ all, so every `chezmoi` line in this runbook answers `command not found`.
 Then the run itself:
 
 ```shell
-chezmoi init --apply --verbose jonnyasmith
+chezmoi init --apply --verbose jonnyasmith/dotfiles-new
 ```
 
 Not the installer's `-- init --apply` form. That works by `exec`ing chezmoi from
@@ -58,6 +58,12 @@ inside the install script, which means a failure to launch it looks identical to
 a successful silent run — the installer's own `installed bin/chezmoi` is the last
 thing either prints. Run as its own command, `chezmoi init` is visible, has an
 exit code you can read, and can be re-run without re-downloading anything.
+
+The repository is named in full for a reason. A bare `chezmoi init jonnyasmith`
+expands to `github.com/jonnyasmith/dotfiles` — the *old* repo, which has no
+`.chezmoiroot` and no `.chezmoiscripts`. It clones and applies without
+complaining, installs nothing, and leaves you with a machine that has no zsh and
+an apply that appeared to do nothing at all.
 
 `--verbose` is what makes the apply narrate. Without it chezmoi prints only the
 scripts' own output, so a run with nothing left to do prints nothing at all and
@@ -89,9 +95,9 @@ exec zsh
 
 If the apply stopped early instead, zsh is not installed yet and `exec zsh`
 answers `not found` — that is the symptom, not the fault. Scroll back to the
-first error. Re-running `chezmoi init --apply --verbose jonnyasmith` is safe and
-is usually the whole fix: every step is guarded, so an apply picks up where the
-last one stopped.
+first error. Re-running `chezmoi apply --verbose` is safe and is usually the
+whole fix: every step is guarded, so an apply picks up where the last one
+stopped.
 
 `packages.debian` is three lists, and only the first is all-or-nothing:
 

@@ -15,7 +15,7 @@ Targets macOS (Apple Silicon), Windows, Debian (bare metal and WSL2), and Fedora
 ```sh
 sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
-chezmoi init --apply --verbose jonnyasmith
+chezmoi init --apply --verbose jonnyasmith/dotfiles-new
 ```
 
 Installing and initialising are two commands on purpose: the installer's
@@ -26,7 +26,7 @@ a relative path that ends up on no `PATH`.
 That covers every POSIX platform. On Windows, from an unelevated pwsh:
 
 ```powershell
-iex "&{$(irm 'https://get.chezmoi.io/ps1')} -- init --apply jonnyasmith"
+iex "&{$(irm 'https://get.chezmoi.io/ps1')} -- init --apply jonnyasmith/dotfiles-new"
 ```
 
 Everything a machine needs that an apply *cannot* do — install media, GUI

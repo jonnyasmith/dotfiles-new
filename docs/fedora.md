@@ -29,7 +29,7 @@ attempted on a half-upgraded system.
 ```shell
 sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
-chezmoi init --apply --verbose jonnyasmith
+chezmoi init --apply --verbose jonnyasmith/dotfiles-new
 exec zsh
 ```
 

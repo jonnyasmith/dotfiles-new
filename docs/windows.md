@@ -36,7 +36,7 @@ Run **without** elevation. Everything here is per-user, and an elevated shell
 installs the winget packages for the wrong profile.
 
 ```powershell
-iex "&{$(irm 'https://get.chezmoi.io/ps1')} -- init --apply jonnyasmith"
+iex "&{$(irm 'https://get.chezmoi.io/ps1')} -- init --apply jonnyasmith/dotfiles-new"
 ```
 
 If PowerShell refuses to run it, the execution policy is stricter than the

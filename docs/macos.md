@@ -19,7 +19,7 @@ its own bootstrap if you get there first.
 ```sh
 sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
-chezmoi init --apply --verbose jonnyasmith
+chezmoi init --apply --verbose jonnyasmith/dotfiles-new
 exec zsh
 ```
 
