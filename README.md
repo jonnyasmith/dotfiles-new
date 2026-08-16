@@ -306,7 +306,7 @@ The gate is a live probe rather than a machine fact:
 enough to bring the directory under management — unlike `.family`, no
 `chezmoi init` is needed.
 
-### Linux services and WSL
+### Linux services, WSL and Portainer
 
 `36-linux-services` does the two things installing the docker package does not:
 adds this account to the `docker` group, and enables `docker.service`. It
@@ -319,6 +319,16 @@ optional npiperelay/socat relay is set up by hand — and reports when
 `/etc/wsl.conf` has no docker boot stanza. It reports rather than writes: that
 file is outside `$HOME`, may already carry `[automount]` or `[user]` stanzas,
 and is read by the Windows side at boot.
+
+`39-portainer` is the one script that runs a container rather than installing
+something: it writes `/opt/portainer/docker-compose.yml` — outside the tree
+chezmoi manages, hence a script and not a target file — and brings it up on
+<http://localhost:9000>. It renders everywhere but Windows, whose containers
+are a WSL guest's job. `docker info` is its gate and doubles as the
+group-membership probe: on the apply that ran `usermod -aG docker` the socket
+is there and still unreadable, so it defers to the next one. The file is
+compared before it is installed, and `up -d` runs only when it changed or
+nothing answers to the name `portainer`.
 
 Everything else WSL needs is conditional elsewhere: the desktop repos and apps
 are skipped in `05-repos` and `10-packages`, `BROWSER` and `SSH_AUTH_SOCK`

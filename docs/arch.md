@@ -198,6 +198,18 @@ Then regenerate the config and reboot:
 sudo grub-mkconfig -o /boot/grub/grub.cfg
 ```
 
+## 11. Portainer
+
+`39-portainer` writes `/opt/portainer/docker-compose.yml` — sudo, because it is
+outside `$HOME` — and runs `docker compose up -d`. Docker here is Arch's own
+`docker` and `docker-compose` packages from `packages.arch.core`, and
+`36-linux-services` enables the service and adds the group. `docker info` gates
+the script, so before the group re-login it prints a `.` line and defers; the
+container arrives on the first apply after that.
+
+Portainer's first-run admin account is created at <http://localhost:9000> and
+the window times out if you leave it; `docker restart portainer` reopens it.
+
 ## Reboot checklist
 
 Three steps here ask for a reboot. Do them together, then reboot once:

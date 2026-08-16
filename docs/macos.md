@@ -125,3 +125,14 @@ winget has no manifest for a Fira Mono Nerd Font under any publisher.
 
 Once, inside tmux: `prefix + I`. chezmoi clones tpm as an external but cannot
 press the key for you.
+
+## 9. Portainer
+
+`39-portainer` writes `/opt/portainer/docker-compose.yml` — sudo, because it is
+outside `$HOME` — and runs `docker compose up -d`. Docker here is OrbStack's,
+from the cask list, and OrbStack has to be launched once before its socket
+answers: until then the script prints a `.` line and defers, so the container
+arrives on the first apply after that.
+
+Portainer's first-run admin account is created at <http://localhost:9000> and
+the window times out if you leave it; `docker restart portainer` reopens it.

@@ -92,6 +92,8 @@ SCRIPT_RULES = [
      "run_after_37-wsl.sh", True),
     ("Arch power management is Arch-only", lambda m: m.startswith("arch-"),
      "run_after_38-arch-services.sh", True),
+    ("portainer is brought up everywhere but Windows",
+     lambda m: not is_windows(m), "run_after_39-portainer.sh", True),
     ("dconf is loaded on a Linux desktop, never under WSL",
      lambda m: is_linux(m) and not is_wsl(m),
      "run_onchange_after_40-desktop-dconf.sh", True),

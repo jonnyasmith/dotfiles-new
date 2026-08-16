@@ -55,7 +55,9 @@ gac_fn() {
 alias gac='noglob gac_fn'
 
 alias d='docker'
-alias dc='docker-compose'
+# `docker compose`, not the retired v1 binary: Debian and Fedora install
+# docker-compose-plugin, and nothing on macOS ships a `docker-compose`.
+alias dc='docker compose'
 alias k='kubectl'
 
 alias ..='cd ..'

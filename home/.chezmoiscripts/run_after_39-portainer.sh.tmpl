@@ -1,0 +1,83 @@
+{{- if ne .family "windows" -}}
+#!/bin/sh
+# Portainer — the one container this repo runs rather than installs.
+#
+# The compose file lives in /opt, outside the tree chezmoi manages, so it is
+# written here instead of being a target file.
+#
+# Neither `once_` nor `onchange_`, like 36-linux-services: the daemon is not
+# reachable on the apply that installs Docker or joins the group, so this has
+# to be able to try again on the next one.
+#
+# Not rendered on Windows: that host runs no containers of its own, and Docker
+# there is a WSL guest's job — see docs/wsl.md.
+
+set -u
+
+command -v docker >/dev/null 2>&1 || exit 0
+
+# `docker info`, not a socket path: it is also the group-membership probe. On
+# the apply that ran `usermod -aG docker` the socket exists and this shell
+# still cannot read it, and compose would fail rather than defer.
+if ! docker info >/dev/null 2>&1; then
+    echo "  . docker is not reachable yet — portainer deferred to the next apply"
+    exit 0
+fi
+
+compose=/opt/portainer/docker-compose.yml
+
+# Compared before it is installed, so an apply with nothing to do neither
+# prompts for a sudo password nor recreates the container. `install -m` rather
+# than `install -D`: BSD install has no -D, hence the separate mkdir.
+want="$(mktemp)"
+cat >"$want" <<'EOF'
+services:
+  portainer:
+    image: portainer/portainer-ce
+    container_name: portainer
+    restart: always
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      portainer:
+        aliases:
+          - "portainer"
+
+volumes:
+  portainer_data:
+
+networks:
+  portainer:
+EOF
+
+changed=""
+if ! cmp -s "$want" "$compose" 2>/dev/null; then
+    if sudo mkdir -p "$(dirname "$compose")" &&
+        sudo install -m 0644 "$want" "$compose"; then
+        changed=1
+        echo "  + $compose"
+    else
+        echo "  ! could not write $compose" >&2
+        rm -f "$want"
+        exit 0
+    fi
+fi
+rm -f "$want"
+
+# `up -d` converges by itself, but it also talks to the registry, so it is kept
+# off an apply where the file is unchanged and the container is already up.
+if [ -z "$changed" ] && [ -n "$(docker ps -q -f name='^portainer$')" ]; then
+    exit 0
+fi
+
+if docker compose -f "$compose" up -d; then
+    echo "  + portainer — http://localhost:9000"
+else
+    echo "  ! could not start portainer" >&2
+fi
+
+exit 0
+{{ end -}}
