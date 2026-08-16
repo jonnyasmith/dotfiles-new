@@ -32,11 +32,38 @@ clone it then does.
 
 ## 3. Bootstrap
 
+Install the binary first, on its own:
+
 ```shell
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply jonnyasmith
+sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+export PATH="$HOME/.local/bin:$PATH"
+chezmoi --version
 ```
 
-That clones over **HTTPS**, which is not a fallback but the only thing that can
+Two things there are deliberate. `-b` overrides the installer's default of
+`./bin`, which is a *relative* path — it lands wherever you happened to be
+standing, and on a machine that has never had a `~/bin` it is on no `PATH` at
+all, so every `chezmoi` line in this runbook answers `command not found`.
+`~/.local/bin` is the directory `.zshenv` puts on `PATH` permanently; the
+`export` is only to reach it from this bash session, before zsh exists.
+
+Then the run itself:
+
+```shell
+chezmoi init --apply --verbose jonnyasmith
+```
+
+Not the installer's `-- init --apply` form. That works by `exec`ing chezmoi from
+inside the install script, which means a failure to launch it looks identical to
+a successful silent run — the installer's own `installed bin/chezmoi` is the last
+thing either prints. Run as its own command, `chezmoi init` is visible, has an
+exit code you can read, and can be re-run without re-downloading anything.
+
+`--verbose` is what makes the apply narrate. Without it chezmoi prints only the
+scripts' own output, so a run with nothing left to do prints nothing at all and
+reads as a hang or a no-op.
+
+It clones over **HTTPS**, which is not a fallback but the only thing that can
 work: SSH to GitHub needs the `IdentityAgent` line pointing ssh at 1Password's
 socket, and that line is in this repo. Switching the remote to SSH is not a step
 either — `31-dev-remotes` does it on the next apply, once 1Password is signed in
@@ -62,8 +89,9 @@ exec zsh
 
 If the apply stopped early instead, zsh is not installed yet and `exec zsh`
 answers `not found` — that is the symptom, not the fault. Scroll back to the
-first error. Re-running is safe and is usually the whole fix: every step is
-guarded, so an apply picks up where the last one stopped.
+first error. Re-running `chezmoi init --apply --verbose jonnyasmith` is safe and
+is usually the whole fix: every step is guarded, so an apply picks up where the
+last one stopped.
 
 `packages.debian` is three lists, and only the first is all-or-nothing:
 

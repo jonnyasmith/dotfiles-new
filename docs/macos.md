@@ -17,9 +17,17 @@ its own bootstrap if you get there first.
 ## 2. Bootstrap
 
 ```sh
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply jonnyasmith
+sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+export PATH="$HOME/.local/bin:$PATH"
+chezmoi init --apply --verbose jonnyasmith
 exec zsh
 ```
+
+`-b` keeps the binary out of the installer's default `./bin`, which is relative
+and on no `PATH`, and `~/.local/bin` is what `.zshenv` exports. `chezmoi init` is
+its own command rather than the installer's `-- init --apply`: run through the
+installer it is `exec`ed out of sight, so a failure to launch looks the same as a
+silent success. `--verbose` makes the apply narrate.
 
 It asks whether this is a work machine, then installs Homebrew if `/opt/homebrew`
 is empty, every formula and cask in `packages.darwin`, the mise `[tools]`, the

@@ -27,9 +27,18 @@ attempted on a half-upgraded system.
 ## 3. Bootstrap
 
 ```shell
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply jonnyasmith
+sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+export PATH="$HOME/.local/bin:$PATH"
+chezmoi init --apply --verbose jonnyasmith
 exec zsh
 ```
+
+`-b` keeps the binary out of the installer's default `./bin`, which is relative
+and on no `PATH`, and `~/.local/bin` is what `.zshenv` exports. `chezmoi init` is
+its own command rather than the installer's `-- init --apply`: run through the
+installer it is `exec`ed out of sight, so a failure to launch looks the same as a
+silent success. `--verbose` makes the apply narrate. See
+[debian.md](debian.md#3-bootstrap).
 
 There is no SSH key to generate first, and no key to paste into GitHub: the
 clone is over HTTPS, and `31-dev-remotes` switches it to SSH on a later apply

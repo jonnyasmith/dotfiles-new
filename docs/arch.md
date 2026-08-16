@@ -80,9 +80,18 @@ fi
 ## 3. Bootstrap
 
 ```bash
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply jonnyasmith
+sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+export PATH="$HOME/.local/bin:$PATH"
+chezmoi init --apply --verbose jonnyasmith
 exec zsh
 ```
+
+`-b` keeps the binary out of the installer's default `./bin`, which is relative
+and on no `PATH`, and `~/.local/bin` is what `.zshenv` exports. `chezmoi init` is
+its own command rather than the installer's `-- init --apply`: run through the
+installer it is `exec`ed out of sight, so a failure to launch looks the same as a
+silent success. `--verbose` makes the apply narrate. See
+[debian.md](debian.md#3-bootstrap).
 
 Alongside the packages and dotfiles, `38-arch-services` enables TLP and
 `NetworkManager-dispatcher`, masks `systemd-rfkill` (TLP owns radio state and

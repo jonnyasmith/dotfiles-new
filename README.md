@@ -13,10 +13,17 @@ Targets macOS (Apple Silicon), Windows, Debian (bare metal and WSL2), and Fedora
 ## Bootstrap a new machine
 
 ```sh
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply jonnyasmith
+sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+export PATH="$HOME/.local/bin:$PATH"
+chezmoi init --apply --verbose jonnyasmith
 ```
 
-That line covers every POSIX platform. On Windows, from an unelevated pwsh:
+Installing and initialising are two commands on purpose: the installer's
+`-- init --apply` form `exec`s chezmoi from inside itself, where a failure to
+launch is indistinguishable from a silent success, and its default `-b ./bin` is
+a relative path that ends up on no `PATH`.
+
+That covers every POSIX platform. On Windows, from an unelevated pwsh:
 
 ```powershell
 iex "&{$(irm 'https://get.chezmoi.io/ps1')} -- init --apply jonnyasmith"
