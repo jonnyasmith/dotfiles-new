@@ -8,8 +8,8 @@ three are things a template can silently get wrong:
   - .chezmoiignore drops the right files on the right machine;
   - each script is gated to the machines that can run it.
 
-Stdlib only: CI installs no Python packages, so YAML is out of scope and is
-counted as skipped rather than quietly passed.
+Stdlib only, so a bare container needs no pip install: YAML is out of scope and
+is counted as skipped rather than quietly passed.
 """
 
 import json

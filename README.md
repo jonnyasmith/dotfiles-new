@@ -49,14 +49,13 @@ chezmoi cd              # open a shell in the source directory
 ## Layout
 
 `.chezmoiroot` points chezmoi at `home/`, so everything outside it — this README,
-`docs/`, CI — is invisible to `chezmoi apply`.
+`docs/`, `checks/` — is invisible to `chezmoi apply`.
 
 ```
 .chezmoiroot              -> "home"
 mise.toml                 tooling for working on this repo, not on a machine
 checks/                   the check suite `mise run check` drives
 docs/                     one runbook per platform, for what an apply cannot do
-.github/workflows/        CI
 home/                     the chezmoi source directory
   .chezmoi.toml.tmpl      machine detection, rendered at `chezmoi init`
   .chezmoiignore          targets chezmoi must not manage
@@ -381,8 +380,8 @@ that renders empty, and git ignores an include that is not there. To change an
 answer later, edit `~/.config/chezmoi/chezmoi.toml` — the prompts only fire
 when the key is absent.
 
-To init with no terminal — CI, or a container — answer the prompt on the
-command line. The flag is keyed on the *prompt text*, not the data key:
+To init with no terminal — a container, or any scripted run — answer the prompt
+on the command line. The flag is keyed on the *prompt text*, not the data key:
 
 ```sh
 chezmoi init --apply --promptBool "Work machine (adds a second git identity)=false"
@@ -415,10 +414,11 @@ and work, Debian, Debian-as-WSL, Fedora, Arch, Windows — and the rest read tha
 machine, and is never linked into `~/.config/mise` — that config is a chezmoi
 target like everything else.
 
-CI runs the suite on every pull request, then does a real `chezmoi init --apply`
-in a Debian 13 and a Fedora 41 container, twice each. Rendering a script proves
-it parses; it says nothing about whether the repositories it adds exist or the
-packages it names are in them.
+Nothing runs this suite for you: it is a command you type, before a commit or
+after a merge. And rendering a script only proves it parses — it says nothing
+about whether the repositories it adds exist or the packages it names are in
+them. That still takes a real `chezmoi init --apply` in a Debian or Fedora
+container, run by hand when a package list or an apt source changes.
 
 ## Status
 
@@ -434,7 +434,7 @@ Built so far:
 - [x] remaining app configs — nvim, tmux, gh, btop, htop, claude, codex, omp
 - [x] OS and desktop settings — macOS defaults, GNOME dconf, COSMIC
 - [x] Debian, WSL, Fedora, Windows
-- [x] verification and CI
+- [x] verification
 - [x] per-OS runbooks
 
 Applied end to end on macOS, and in a Debian 13 container — where the repo
@@ -444,7 +444,8 @@ repositories they add. The WSL branch is verified the same way, by forcing
 same way, twice. An earlier Fedora run died at the mise step on GitHub's
 anonymous API rate limit — the same failure then reproduced on a Debian
 container that had passed an hour before, which is what identified it as the
-limit rather than the distro. CI passes a token for that reason.
+limit rather than the distro. A container run wants `GITHUB_TOKEN` exported for
+that reason.
 
 On Arch, `38-arch-services` has been run twice in a container: it enables
 `fstrim.timer`, uncomments pacman's `Color`, and writes `vm.swappiness` once
