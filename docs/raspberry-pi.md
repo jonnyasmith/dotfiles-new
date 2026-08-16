@@ -45,8 +45,9 @@ case the remotes stay on HTTPS and the script says so on every apply.
 
 Docker is not a manual step any more either. `05-repos-debian` adds the Docker
 CE repo with `arch=$(dpkg --print-architecture)`, so it resolves `arm64` here;
-the packages are in `packages.debian.core`; and `36-linux-services` adds you to
-the `docker` group and enables the service.
+the packages are `packages.debian.docker`, installed as their own batch once
+that source exists; and `36-linux-services` adds you to the `docker` group and
+enables the service.
 
 ### The desktop apps will fail, and that is expected
 

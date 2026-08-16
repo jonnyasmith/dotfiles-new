@@ -27,6 +27,7 @@ MANAGERS = {
     ("darwin", "casks"): "brew-cask",
     ("debian", "core"): "apt",
     ("debian", "desktop"): "apt",
+    ("debian", "docker"): "apt",
     ("fedora", "core"): "dnf",
     ("fedora", "desktop"): "dnf",
     ("arch", "core"): "pacman",

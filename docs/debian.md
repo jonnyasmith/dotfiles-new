@@ -34,7 +34,6 @@ clone it then does.
 
 ```shell
 sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply jonnyasmith
-exec zsh
 ```
 
 That clones over **HTTPS**, which is not a fallback but the only thing that can
@@ -49,8 +48,33 @@ The run asks one question, whether this is a work machine, and then adds the
 in `packages.debian`, the mise `[tools]`, the dotfiles and the GNOME dconf, sets
 zsh as the login shell, and puts you in the `docker` group.
 
-The desktop apps — 1Password, Chrome, VS Code, VLC — are the `desktop` list
-rather than `core`, which is how WSL skips the lot (see [wsl.md](wsl.md)).
+Wait for it to finish. The last lines it prints include
+
+```
+  + login shell: /usr/bin/zsh (takes effect at the next login)
+```
+
+and only then is there a zsh to start:
+
+```shell
+exec zsh
+```
+
+If the apply stopped early instead, zsh is not installed yet and `exec zsh`
+answers `not found` — that is the symptom, not the fault. Scroll back to the
+first error. Re-running is safe and is usually the whole fix: every step is
+guarded, so an apply picks up where the last one stopped.
+
+`packages.debian` is three lists, and only the first is all-or-nothing:
+
+| List | On failure |
+| --- | --- |
+| `core` | fatal — these are Debian's own packages, and one that will not resolve means a broken machine |
+| `docker` | skipped with a `!` line if the Docker apt source is missing; `36-linux-services` then skips too |
+| `desktop` | 1Password, Chrome, VS Code, VLC — installed one at a time, each survivable |
+
+`core` carries zsh, which is why the other two are kept out of it. The `desktop`
+list is also the one WSL skips wholesale (see [wsl.md](wsl.md)).
 
 `chezmoi apply --dry-run -v` shows what a run would do; `chezmoi status` shows
 what is out of sync. It is idempotent — re-run it any time.

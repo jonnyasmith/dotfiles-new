@@ -60,7 +60,8 @@ metal and WSL means re-running `chezmoi init`.
 ## 4. Docker
 
 The repository and GPG key are added by `05-repos-debian`, the Docker CE
-packages are in `packages.debian.core`, and `36-linux-services` adds you to the
+packages are `packages.debian.docker` — installed as their own batch, guarded on
+that source existing — and `36-linux-services` adds you to the
 `docker` group and enables the service where systemd is running. Two things
 convergence deliberately will not do:
 

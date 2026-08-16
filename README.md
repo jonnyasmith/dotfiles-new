@@ -87,6 +87,11 @@ in a comment.
 Under WSL the `desktop` lists and their repositories are skipped — each entry
 duplicates an app on the Windows host.
 
+`core` is one batch and fails the apply; `desktop`, and Debian's `docker`, are
+installed separately and survivably. That split is not cosmetic — `core` is what
+installs zsh, so anything in it that comes from a repository an earlier script
+is allowed to skip would cost the machine its login shell.
+
 ## Toolchains
 
 `~/.config/mise/config.toml` is an ordinary chezmoi-managed file. It declares

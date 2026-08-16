@@ -10,11 +10,26 @@ set -eu
 
 export DEBIAN_FRONTEND=noninteractive
 
-# One batch: a missing package here is a broken machine, so the whole install
-# should fail rather than limp on.
+# One batch: everything here comes from Debian's own repositories, so a name
+# that will not resolve means a broken machine rather than a missing extra, and
+# the whole install should fail rather than limp on.
 sudo apt-get install -y \
 {{ range $i, $p := .packages.debian.core }}{{ if $i }} \
 {{ end }}    {{ $p }}{{ end }}
+
+# Docker is its own batch, guarded on the source 05-repos-debian is allowed to
+# skip. Inside the batch above, five unresolvable packages would take zsh —
+# installed by that same batch, and what the bootstrap tells you to `exec` —
+# down with them.
+if [ ! -f /etc/apt/sources.list.d/docker.list ]; then
+    echo "  ! no Docker apt source, skipping {{ .packages.debian.docker | join " " }}"
+elif sudo apt-get install -y \
+{{ range $i, $p := .packages.debian.docker }}{{ if $i }} \
+{{ end }}    {{ $p }}{{ end }}; then
+    echo "  + docker"
+else
+    echo "  ! could not install Docker; 36-linux-services will skip it"
+fi
 
 {{ if .isWSL -}}
 echo "  . wsl: the desktop apps come from the Windows host, skipped"

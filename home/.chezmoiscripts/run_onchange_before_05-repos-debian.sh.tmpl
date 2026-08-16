@@ -101,29 +101,49 @@ fi
 # apt, not snap: the snap build reaches neither the SSH agent nor system
 # authentication, which is the entire reason 1Password is on these machines.
 if [ ! -f /etc/apt/sources.list.d/1password.list ]; then
-    curl -sS https://downloads.1password.com/linux/keys/1password.asc \
-        | sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg
-    echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/amd64 stable main' \
-        | sudo tee /etc/apt/sources.list.d/1password.list >/dev/null
-    sudo mkdir -p /etc/debsig/policies/AC2D62742012EA22/
-    curl -sS https://downloads.1password.com/linux/debian/debsig/1password.pol \
-        | sudo tee /etc/debsig/policies/AC2D62742012EA22/1password.pol >/dev/null
-    sudo mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22
-    curl -sS https://downloads.1password.com/linux/keys/1password.asc \
-        | sudo gpg --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
+    # Dearmoured to temp files and size-checked before anything reaches /etc,
+    # for the reason spelled out on the Docker block above: the .list is the
+    # idempotency guard, so an empty keyring written beside it is never
+    # retried, and every later `apt-get update` fails on a source it cannot
+    # verify — taking the package script, and with it zsh, down too.
+    op_key="$(mktemp)"
+    op_pol="$(mktemp)"
+    if curl -fsSL https://downloads.1password.com/linux/keys/1password.asc \
+         | gpg --dearmor >"$op_key" && [ -s "$op_key" ] \
+       && curl -fsSL https://downloads.1password.com/linux/debian/debsig/1password.pol \
+         >"$op_pol" && [ -s "$op_pol" ]; then
+        sudo install -m 0644 "$op_key" /usr/share/keyrings/1password-archive-keyring.gpg
+        sudo install -D -m 0644 "$op_pol" /etc/debsig/policies/AC2D62742012EA22/1password.pol
+        sudo install -D -m 0644 "$op_key" /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
+        echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/amd64 stable main' \
+            | sudo tee /etc/apt/sources.list.d/1password.list >/dev/null
+    else
+        echo "  ! could not fetch the 1Password signing key; skipping the repo"
+    fi
+    rm -f "$op_key" "$op_pol"
 fi
 
 if [ ! -f /etc/apt/sources.list.d/vscode.sources ]; then
-    wget -qO- https://packages.microsoft.com/keys/microsoft.asc \
-        | sudo gpg --dearmor -o /usr/share/keyrings/microsoft.gpg
-    printf '%s\n' \
-        'Types: deb' \
-        'URIs: https://packages.microsoft.com/repos/code' \
-        'Suites: stable' \
-        'Components: main' \
-        'Architectures: amd64,arm64,armhf' \
-        'Signed-By: /usr/share/keyrings/microsoft.gpg' \
-        | sudo tee /etc/apt/sources.list.d/vscode.sources >/dev/null
+    # curl, not wget: wget is in `core`, which the script after this one
+    # installs, so on a minimal Debian it does not exist yet. And the pipeline
+    # below exits with gpg's status, which is zero for an empty input, so the
+    # size check is what actually catches a failed fetch.
+    ms_key="$(mktemp)"
+    if curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
+         | gpg --dearmor >"$ms_key" && [ -s "$ms_key" ]; then
+        sudo install -m 0644 "$ms_key" /usr/share/keyrings/microsoft.gpg
+        printf '%s\n' \
+            'Types: deb' \
+            'URIs: https://packages.microsoft.com/repos/code' \
+            'Suites: stable' \
+            'Components: main' \
+            'Architectures: amd64,arm64,armhf' \
+            'Signed-By: /usr/share/keyrings/microsoft.gpg' \
+            | sudo tee /etc/apt/sources.list.d/vscode.sources >/dev/null
+    else
+        echo "  ! could not fetch the Microsoft signing key; skipping the repo"
+    fi
+    rm -f "$ms_key"
 fi
 
 # Proprietary, so in no distribution repository. The deb's own postinst writes
@@ -141,5 +161,11 @@ if [ ! -f /etc/apt/sources.list.d/google-chrome.list ]; then
     rm -f "$chrome_key"
 fi
 {{ end }}
-sudo apt-get update
+# Not fatal, unlike the update at the top of this script. That one refreshes
+# Debian's own indexes; this one also fetches the third-party sources above,
+# any of which can be unreachable for a minute, and a failure there must not
+# stop the package script from running at all. A source that is genuinely
+# missing reappears there as a package that will not resolve.
+sudo apt-get update \
+    || echo "  ! apt-get update reported errors; a source above may be unavailable"
 {{ end -}}

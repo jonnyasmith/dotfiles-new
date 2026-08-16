@@ -77,13 +77,8 @@ casks = [
 core = [
     "build-essential",           # gcc/make/libc headers; matches Fedora's @development-tools and Arch's base-devel
     "ca-certificates",           # Docker-repo prerequisite, and what makes HTTPS apt sources work
-    "containerd.io",             # parity-skip: Arch ships the whole engine as `docker`
     "curl",
     "dbus-x11",                  # dbus-launch, needed by gnome-tweaks over SSH/X
-    "docker-buildx-plugin",      # parity-skip: Arch ships the whole engine as `docker`
-    "docker-ce",                 # parity-skip: Arch ships the whole engine as `docker`
-    "docker-ce-cli",             # parity-skip: Arch ships the whole engine as `docker`
-    "docker-compose-plugin",     # `docker compose`. parity-skip: Arch ships this as `docker-compose`
     "git",
     "htop",
     "kitty",
@@ -99,6 +94,20 @@ core = [
     "xz-utils",                  # parity-skip: Fedora calls this `xz`
     "zip",
     "zsh",                       # the login shell set during bootstrap
+]
+
+# The Docker CE set, from the apt source 05-repos-debian is allowed to skip on
+# a derivative it has no URL for. Its own list, and its own batch in
+# 10-packages-debian, because a skipped source has to cost the machine Docker
+# and nothing else: `core` above carries zsh, so an all-or-nothing batch that
+# also holds five packages from a best-effort repo breaks the bootstrap's
+# `exec zsh` every time that repo is missing.
+docker = [
+    "containerd.io",         # parity-skip: Arch ships the whole engine as `docker`
+    "docker-buildx-plugin",  # parity-skip: Arch ships the whole engine as `docker`
+    "docker-ce",             # parity-skip: Arch ships the whole engine as `docker`
+    "docker-ce-cli",         # parity-skip: Arch ships the whole engine as `docker`
+    "docker-compose-plugin", # `docker compose`. parity-skip: Arch ships this as `docker-compose`
 ]
 
 desktop = [
