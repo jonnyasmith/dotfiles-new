@@ -8,5 +8,14 @@ unset _brew
 # OrbStack CLI integration — where `docker` and `orb` come from.
 source "$HOME/.orbstack/shell/init.zsh" 2>/dev/null || :
 
+# ~/.local/bin, re-asserted for the same reason the shims are below: macOS runs
+# path_helper from /etc/zprofile, which *rebuilds* PATH with /etc/paths at the
+# front and everything else appended — so the entry .zshenv prepended lands
+# below /usr/bin, and `vi`/`vim` resolve to the system vim rather than the
+# wrappers there that exec nvim. Unconditional rather than guarded on darwin:
+# where there is no path_helper the entry is already first and this is a no-op.
+path=("$HOME/.local/bin" ${path:#"$HOME/.local/bin"})
+export PATH
+
 # Put the shims back in front of the /opt/homebrew/bin brew just prepended.
 mise-shims-first
