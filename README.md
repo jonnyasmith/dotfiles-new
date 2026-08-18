@@ -39,12 +39,79 @@ for that platform:
 
 ## Day to day
 
-```sh
-chezmoi edit ~/.zshrc   # edit the source, not the target
-chezmoi apply           # write changes to $HOME
-chezmoi update          # git pull, then apply
-chezmoi cd              # open a shell in the source directory
+There are two directories, and that is the whole thing to understand. The git
+repository is at `~/.local/share/chezmoi` — `chezmoi init` clones it there, so
+the working tree *is* on this machine, just not in `$HOME`. The files in `$HOME`
+are copies chezmoi generates from it. Nothing in `$HOME` is a symlink into the
+repo and nothing in `$HOME` is under version control.
+
 ```
+remote  <--git pull/push-->  ~/.local/share/chezmoi  --apply-->  ~/.zshrc
+                                    (the repo)       <--add--    (a copy)
+```
+
+So an edit has to reach the source before it reaches the remote, and every
+command below is either moving a change one way along that arrow or the other.
+
+### Change something
+
+Edit the source and write the result out:
+
+```sh
+chezmoi edit ~/.zshrc           # opens home/dot_zshrc in $EDITOR
+chezmoi apply                   # write every managed file to $HOME
+chezmoi edit --apply ~/.zshrc   # both, for a one-file change
+```
+
+`chezmoi cd` opens a shell in the repo when the change spans several files.
+`chezmoi diff` shows source-versus-target before applying, and
+`chezmoi apply --dry-run --verbose` shows it as the commands an apply would run.
+
+If the edit was made in `$HOME` instead — by hand, or by an app that rewrites
+its own config — pull it back the other way:
+
+```sh
+chezmoi add ~/.config/foo/bar   # start managing a new file, or absorb changes to one
+chezmoi re-add                  # absorb every changed managed file, add nothing new
+```
+
+**Never apply over an unabsorbed edit.** `chezmoi apply` writes the source over
+the target, so an edit made only in `$HOME` is lost. `chezmoi diff` is empty
+exactly when there is nothing to lose.
+
+### Send it to the remote
+
+The source directory is an ordinary git repository, so this is ordinary git:
+
+```sh
+chezmoi cd
+git add -A
+git commit -m "..."
+git push
+exit
+```
+
+Or without leaving the current directory, `chezmoi git -- <args>`:
+
+```sh
+chezmoi git -- status -sb
+chezmoi git -- add -A
+chezmoi git -- commit -m "..."
+chezmoi git -- push
+```
+
+Run `mise run check` in the repo before pushing anything that touches a
+template or a script.
+
+### Take it on another machine
+
+```sh
+chezmoi update                          # git pull --ff-only, then apply
+chezmoi update --dry-run --verbose      # ...or read what that would do first
+```
+
+`chezmoi init` is only for a machine that has none of this yet, or for
+re-answering the machine-fact prompts — see [Machine facts](#machine-facts).
 
 ## Layout
 
